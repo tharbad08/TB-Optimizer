@@ -1,36 +1,85 @@
 using System;
-using HarmonyLib;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace BenchmarkAndOptimizerV11;
 
-// Check loaded runtime types, not installed Workshop directories. This is deliberately
-// read-only and does not load, initialize or activate an optional mod.
+/// <summary>
+/// Determines which optional mod patches may be INSTALLED. This scans only
+/// assemblies already loaded in the current game process. It never loads an
+/// assembly, scans Workshop folders, or attempts to activate another mod.
+///
+/// A loaded type is a conservative runtime marker, not proof that every method
+/// in a future mod version is compatible. Individual patches must still
+/// validate their targets before modifying them.
+/// </summary>
 internal static class ModAvailability
 {
-    private static readonly string[] Bfr = { "Calloatti.BeaversForReal.BFRManager" };
-    private static readonly string[] Ebr = { "ExtendedBuilderReach.Components.ExtendedDemolishableAccessible" };
-    private static readonly string[] Keystone = { "Keystone.Mod.Fauna.FaunaSpawnDrainer" };
-    private static readonly string[] SuperCursor = { "SuperCursor.Services.SuperCursorTool" };
-    private static readonly string[] Physics = { "TimberPhysics.Core.PhysicsSimulator", "TimberPhysics.Core.PhysicalObjectRegistry" };
-    private static readonly string[] Swc = { "TonWolfe.SimpleWorkshopControl.SimpleWorkshopControler", "TonWolfe.SimpleWorkshopControl.PlantMonitor", "TonWolfe.SimpleWorkshopControl.PlantingControler" };
+    // Every third-party setting key MUST appear here. Keys not listed in
+    // either this map or BaseGameKeys fail closed, never default to "available".
+    // All listed types are required for the corresponding patch.
+    private static readonly IReadOnlyDictionary<string, string[]> RequiredModTypes =
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["BFR"] = new[] { "Calloatti.BeaversForReal.BFRManager" },
+            ["EBR"] = new[] { "ExtendedBuilderReach.Components.ExtendedDemolishableAccessible" },
+            ["FaunaBudget"] = new[] { "Keystone.Mod.Fauna.FaunaSpawnDrainer" },
+            ["FaunaCache"] = new[] { "Keystone.Mod.Fauna.FaunaSpawnDrainer" },
+            ["FaunaPrewarm"] = new[] { "Keystone.Mod.Fauna.FaunaSpawnDrainer" },
+            ["SuperCursor"] = new[] { "SuperCursor.Services.SuperCursorTool" },
+            ["PhysicsCatchup"] = new[]
+            {
+                "TimberPhysics.Core.PhysicsSimulator",
+                "TimberPhysics.Core.PhysicalObjectRegistry"
+            },
+            ["PhysicsCollider"] = new[]
+            {
+                "TimberPhysics.Terrain.TerrainColliderService",
+                "TimberPhysics.Core.PhysicsSimulator"
+            },
+            ["SWC"] = new[]
+            {
+                "TonWolfe.SimpleWorkshopControl.SimpleWorkshopControler",
+                "TonWolfe.SimpleWorkshopControl.PlantMonitor",
+                "TonWolfe.SimpleWorkshopControl.PlantingControler"
+            },
+        };
+
+    private static readonly HashSet<string> BaseGameKeys = new(StringComparer.Ordinal)
+    {
+        "PreviewNav", "PreviewPool", "PreviewSweep", "BlueprintCache",
+        "BulkBuild", "SoilReset", "GcSmoother"
+    };
+
+    internal static bool IsOptionalModFeature(string key) =>
+        RequiredModTypes.ContainsKey(key);
 
     internal static bool IsAvailable(string key)
     {
-        string[]? names = key switch
+        if (BaseGameKeys.Contains(key)) return true;
+        if (!RequiredModTypes.TryGetValue(key, out var names)) return false;
+        try
         {
-            "BFR" => Bfr, "EBR" => Ebr,
-            "FaunaBudget" or "FaunaCache" or "FaunaPrewarm" => Keystone,
-            "SuperCursor" => SuperCursor,
-            "PhysicsCatchup" or "PhysicsCollider" => Physics,
-            "SWC" => Swc,
-            "GcSmoother" => null,
-            _ => Array.Empty<string>()
-        };
-        if (key == "GcSmoother") return true; // Poll runtime GC mode rather than disabling the toggle.
-        if (names is null) return false;
-        foreach (var name in names)
-            if (AccessTools.TypeByName(name) is null) return false;
-        return true;
+            Assembly[] loaded = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (string fullName in names)
+            {
+                bool found = false;
+                foreach (Assembly assembly in loaded)
+                {
+                    if (assembly.GetType(fullName, throwOnError: false, ignoreCase: false) is null)
+                        continue;
+                    found = true;
+                    break;
+                }
+                if (!found) return false;
+            }
+            return true;
+        }
+        catch
+        {
+            // Any lookup failure must NOT allow a third-party patch to arm.
+            return false;
+        }
     }
 
     internal static bool ShouldInstall(string key) =>
