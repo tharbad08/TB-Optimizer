@@ -21,3 +21,7 @@ Optional mods are detected through loaded runtime types. Their optimization chec
 ### GC runtime polling
 
 The GC setting can be enabled in the main menu even if Unity currently reports incremental collection disabled. TB Optimizer installs a lightweight hook and rechecks the current engine mode every 300 `SingletonLifecycleService.UpdateSingletons` calls during gameplay. The counter measures **update callbacks**, not heap mutations; managed heap size is sampled only if incremental GC is enabled. Below 5.5 GiB managed heap no explicit slice is requested. No game GC mode is forced on.
+
+### Optional mod detection
+
+**Every third-party patch is gated by loaded-mod class detection AND the user's enabled preference.** Missing optional mods skip all associated Harmony hooks (including any base-game methods they would otherwise intercept). See [MOD-DETECTION.md](MOD-DETECTION.md) for the complete mod/key matrix, startup order, greyed-out settings, compatibility checks and limitations. Loaded classes are not definitive proof that the game's mod manager enabled the mod.

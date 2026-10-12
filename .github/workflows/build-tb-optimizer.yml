@@ -24,6 +24,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Validate optional-mod detection gates
+        run: python3 scripts/check-mod-activation.py
+
       - name: Build TB Optimizer
         run: dotnet build BenchmarkAndOptimizerV11Port.csproj -c Release --nologo
 
@@ -41,6 +44,6 @@ jobs:
       - name: Upload ready-to-install package
         uses: actions/upload-artifact@v4
         with:
-          name: TBOptimizer_1.1.107
+          name: TBOptimizer_1.1.108
           path: ${{ runner.temp }}/timberborn-artifact/
           if-no-files-found: error

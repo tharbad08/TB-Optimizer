@@ -15,15 +15,15 @@ public sealed class ModStarter : IModStarter
         if (ModAvailability.ShouldInstall("BFR")) BfrLocalizedChangeOptimizerPatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("EBR") && EbrDeferredDrainHook.Install(harmony))
             ExtendedBuilderReachNavOptimizer.Patch(harmony);
-        if (OptimizationToggles.Enabled("PreviewNav")) PreviewNavMeshBatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("PreviewPool")) UnusedPreviewPoolFastPath.Patch(harmony);
-        if (OptimizationToggles.Enabled("PreviewSweep")) FullyBuildablePreviewFastPath.Patch(harmony);
-        if (OptimizationToggles.Enabled("BlueprintCache")) BlueprintSpecInstantiationCache.Patch(harmony);
-        if (OptimizationToggles.Enabled("BulkBuild")) BulkComponentInstantiationFastPath.Patch(harmony);
+        if (ModAvailability.ShouldInstall("PreviewNav")) PreviewNavMeshBatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("PreviewPool")) UnusedPreviewPoolFastPath.Patch(harmony);
+        if (ModAvailability.ShouldInstall("PreviewSweep")) FullyBuildablePreviewFastPath.Patch(harmony);
+        if (ModAvailability.ShouldInstall("BlueprintCache")) BlueprintSpecInstantiationCache.Patch(harmony);
+        if (ModAvailability.ShouldInstall("BulkBuild")) BulkComponentInstantiationFastPath.Patch(harmony);
         if (ModAvailability.ShouldInstall("FaunaBudget")) FaunaSpawnBudgetPatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("FaunaCache")) FaunaRecipeLookupCachePatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("FaunaPrewarm")) KeystoneFaunaTemplatePrewarmer.Patch(harmony);
-        if (OptimizationToggles.Enabled("SoilReset")) SoilContaminationResetOptimizer.Patch(harmony);
+        if (ModAvailability.ShouldInstall("SoilReset")) SoilContaminationResetOptimizer.Patch(harmony);
         if (ModAvailability.ShouldInstall("SuperCursor")) SuperCursorRefreshSmoother.Patch(harmony);
         // SWC scanning must never run without its workplace/harvest safety guard.
         if (ModAvailability.ShouldInstall("SWC") && SWCHarvestSafety.Install(harmony))

@@ -97,3 +97,7 @@
 ## Loaded-mod detection and opt-out persistence (v1.1.106)
 
 [`ModAvailability.cs`](ModAvailability.cs) checks loaded type markers for optional third-party mods rather than checking installed files. Startup installs each enabled patch only when its associated mod appears loaded, and Mod Settings disables/greys out unavailable checkboxes. Missing keys default on, while explicit false values in `tb-optimizer-options.json` remain false even when the mod later becomes available. Loaded types alone do not guarantee compatibility: each patch retains its own method-signature and IL checks. The detector does not load, activate or disable other mods. Restart the game after changing mod selection or settings.
+
+## Third-party patch installation policy
+
+Every registered third-party patch is guarded at startup by [ModAvailability.cs](ModAvailability.cs) and the user's preference. The supported keys, mod-specific runtime type markers and safety constraints are documented in [MOD-DETECTION.md](MOD-DETECTION.md). Unknown keys fail closed. In particular, the base-game hook used by EBR, game template hooks used by Keystone, and global worker behavior hooks used by SWC are *not* installed when the corresponding third-party mod types are absent. Runtime loaded-type detection cannot definitively distinguish an installed-but-disabled mod from an active one; do not describe this as confirmed enabled-mod status.
