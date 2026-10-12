@@ -7,7 +7,7 @@
 **Registration and settings:**
 
 - [\`ModStarter.cs\`](ModStarter.cs) is the **only registration point**. It starts the Harmony patches corresponding to enabled feature keys; this build has **no global tick dispatcher throttling, CSV benchmark, or freeze profiler**.
-- [\`OptimizationToggles.cs\`](OptimizationToggles.cs) declares 15 actionable switches, their short descriptions, and the on-disk \`tb-optimizer-options.json\` values. Missing keys default to **enabled**.
+- [\`OptimizationToggles.cs\`](OptimizationToggles.cs) declares 16 actionable switches, their short descriptions, and the on-disk \`tb-optimizer-options.json\` values. Missing keys default to **enabled**.
 - [\`SettingsIntegration.cs\`](SettingsIntegration.cs) adds the TB Optimizer Mod Settings panel and one checkbox plus explanation for each feature.
 - **Changing a checkbox requires a game restart**; toggles are evaluated when the mod starts, and disabling a checkbox does not automatically unpatch running Harmony methods.
 - If a target method/type does not match the expected version, individual patches generally skip installing rather than guessing. **Build success only verifies compilation.** Read this inventory and confirm runtime behavior with each relevant mod.
@@ -27,11 +27,11 @@
 | **Bober's Laws of Motion / TimberPhysics** (\`PhysicsCollider\`) | [\`TimberPhysicsTerrainColliderMergerPatcher.cs\`](Optimizations/Mods/TimberPhysics/TimberPhysicsTerrainColliderMergerPatcher.cs) | Merges only conservative **equal floor/ceiling** terrain collider columns in **32×32 chunks**; tracks dirty chunks, batches rebuilds before simulation, and attempts transactional restoration of complete vanilla colliders on failure. Never leave partially merged + vanilla collider sets. |
 
 
-## Simple Workshop Control (SWC) — experimental opt-in integration
+## Simple Workshop Control (SWC) — auto-enabled if loaded; guarded integration
 
 **Provenance:** user-provided `SimpleWorkshopControl_1.1.36.2_HarvestSafety` archive. Its README explicitly says that the SWC performance DLL is **identical to the earlier 1.1.36.1 performance DLL**, while 1.1.36.2 adds a **separate** `SWC.HarvestSafety.dll`. Thus the performance patch and safety patch are distinct deliverables in the reference package, even though they should be installed together for this port.
 
-**Tracking:** [SWC compatibility draft PR #4](https://github.com/tharbad08/TimberbornMods/pull/4) on [`chatgpt/tb-optimizer-swc-compat`](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/tb-optimizer-swc-compat). In version **1.1.105**, the single `SWC` toggle (off by default) starts safety first, then limited scan scheduling from the installed SWC DLL. The deeper scanner prototype remains **unwired**, not active. The original draft PR tracks provenance, not the current standalone install path.
+**Tracking:** [SWC compatibility draft PR #4](https://github.com/tharbad08/TimberbornMods/pull/4) on [`chatgpt/tb-optimizer-swc-compat`](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/tb-optimizer-swc-compat). In version **1.1.106**, the single `SWC` toggle (on by default if SWC is loaded unless explicitly disabled) starts harvest safety, then four-tick native scan scheduling and allocation-reducing native scan replacements. The runtime guards skip unsupported method signatures and IL. The original draft PR tracks provenance, not the current standalone install path.
 
 ### Original reference patch: performance and behavior map
 
@@ -49,8 +49,8 @@
 | Draft source file | Ownership / current status |
 | --- | --- |
 | [`SWCHarvestSafety.cs`](Optimizations/Mods/SWC/SWCHarvestSafety.cs) | Safety guard integrated as optional Harmony hooks. **Compiled; not proven in-game.** |
-| [`SWCScanOptimizer.cs`](Optimizations/Mods/SWC/SWCScanOptimizer.cs) | Integrated native-Tick staggering and cooldown bookkeeping, **currently fixed to 4 ticks**; conditional on successful safety installation. Not equivalent to the original configurable 1–60 interval or inner-scan optimizations. |
-| [`SWCFastScanner.cs`](https://github.com/tharbad08/TimberbornMods/blob/chatgpt/tb-optimizer-swc-compat/BenchmarkAndOptimizerV11Port/Optimizations/Mods/SWC/SWCFastScanner.cs) | Experimental reusable-buffer and planting inner-loop implementation. **Source/compilation only; not called by `ModStarter` or `SWCScanOptimizer`**, so do not claim active performance or runtime parity. |
+| [`SWCScanOptimizer.cs`](Optimizations/Mods/SWC/SWCScanOptimizer.cs) | Integrated native-Tick staggering and cooldown bookkeeping, **currently fixed to 4 ticks**; conditional on successful safety installation. The scan interval is fixed to four ticks (unlike the original 1–60 setting); allocation optimizations are handled by SWCAllocationPatcher. |
+| [`SWCFastScanner.cs`](Optimizations/Mods/SWC/SWCFastScanner.cs) and [`SWCAllocationPatcher.cs`](Optimizations/Mods/SWC/SWCAllocationPatcher.cs) | Integrated low-allocation inner scans with per-instance reusable harvest buffers, planting traversal, reflection compatibility binding, and failure fallback to the installed SWC methods. Guarded by safety-first startup and signature/IL/other Harmony owner checks. **Live gameplay equivalence is not yet verified.** |
 | [`SWC-COMPATIBILITY.md`](https://github.com/tharbad08/TimberbornMods/blob/chatgpt/tb-optimizer-swc-compat/BenchmarkAndOptimizerV11Port/SWC-COMPATIBILITY.md) | Draft compatibility, prerequisites, validation, and manual test checklist. |
 
 **Version policy:** keep the normal/updatable SWC Workshop DLL, and bind dynamically to its installed types/methods rather than distributing a patched SWC DLL. If SWC internals or Timberborn IL change, decline affected patches rather than guessing. Do not stack the old patched performance DLL and its safety companion with the independent optimizer's hooks. Missing SWC is not a required-mod failure.
@@ -70,11 +70,11 @@
 | \`BulkBuild\` | [\`BulkComponentInstantiationV11.cs\`](Optimizations/BaseGame/Previews/BulkComponentInstantiationV11.cs) | An audited, warmed-spec fast path for Timberborn 1.1's **four-argument** \`BaseInstantiator.InstantiateComponents\`. Preserves initializer ordering, native construction of live components, T3MP's allowed early prefix and SmartPower/other postfixes; fails closed if live IL or Harmony ownership is unexpected. Used also by large preview brushes, **not** a shortcut around AutoScaffold/EzTube or placement rules. |
 | \`SoilReset\` | [\`SoilContaminationResetOptimizer.cs\`](Optimizations/BaseGame/Soil/SoilContaminationResetOptimizer.cs) | Specializes \`SoilContaminationService.Reset\`: transitions only contaminated objects, clears backing levels and resets the contamination map once after checking expected layout. **Normal contamination/moisture updates and planting controls remain at vanilla tick cadence.** |
 
-## GC source present, but no active slice scheduling
+## Conditional incremental GC (supported runtimes only)
 
 | Key | File | Current verified wiring |
 | --- | --- | --- |
-| \`GcSmoother\` | [\`IncrementalGcSmoother.cs\`](Optimizations/BaseGame/GC/IncrementalGcSmoother.cs) | \`ModStarter.cs\` calls **\`Initialize()\` only**. The file contains a conditional \`Pulse(heapBytes)\` implementation with bounded incremental-GC requests above heap thresholds, but **nothing in this TB-Optimizer release calls \`Pulse\`**. Thus this switch currently **does not deliver an active incremental GC optimization**; if Unity reports incremental GC unavailable, it would decline to collect anyway. Do not describe it as proven to reduce Gen2 pauses. GC research belongs to [\`chatgpt/TBGC\`](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/TBGC). |
+| `GcSmoother` | [`IncrementalGcSmoother.cs`](Optimizations/BaseGame/GC/IncrementalGcSmoother.cs) and [`IncrementalGcFrameHook.cs`](Optimizations/BaseGame/GC/IncrementalGcFrameHook.cs) | The new hook samples managed heap every 300 singleton frames and requests bounded 0.5/1/2 ms incremental slices above 5.5/6/6.5 GiB thresholds, only if Unity `isIncremental` is true. Otherwise the option is unavailable and greyed out. Previous versions only initialized the helper; they never called `Pulse`. |
 
 ## Boundaries / what TB Optimizer deliberately does *not* do
 
@@ -93,3 +93,7 @@
 4. Separate **compilation**, **installed patch**, **equivalent gameplay semantics**, and **measured FPS/game-speed gain**; no one implies the others.
 
 **Historical evidence:** [original development notes and diagnostic sources](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/BenchmarkAndOptimizerV11Port/BenchmarkAndOptimizerV11Port). The branch's legacy source contains experiments, including unsafe/dormant paths; do not ship it as a replacement for the maintained \`TB-Optimizer\` source.
+
+## Loaded-mod detection and opt-out persistence (v1.1.106)
+
+[`ModAvailability.cs`](ModAvailability.cs) checks loaded type markers for optional third-party mods rather than checking installed files. Startup installs each enabled patch only when its associated mod appears loaded, and Mod Settings disables/greys out unavailable checkboxes. Missing keys default on, while explicit false values in `tb-optimizer-options.json` remain false even when the mod later becomes available. Loaded types alone do not guarantee compatibility: each patch retains its own method-signature and IL checks. The detector does not load, activate or disable other mods. Restart the game after changing mod selection or settings.
