@@ -67,6 +67,7 @@ public sealed class TBOptimizerPanel : VisualElement
             var key = item.Key;
             var header = group.AddRow().AlignItems(Align.Center);
             header.AddGameLabel(item.Label).SetMarginRight(8f);
+            header.SetWidthPercent(100f);
             var toggle = header.AddToggle("", onValueChanged: v => OptimizationToggles.Set(key, v));
             toggle.SetValueWithoutNotify(OptimizationToggles.Enabled(key));
             group.AddGameLabel(item.Description).SetMarginBottom(2);
