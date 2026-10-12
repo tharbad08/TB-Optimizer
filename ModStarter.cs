@@ -27,7 +27,10 @@ public sealed class ModStarter : IModStarter
         if (ModAvailability.ShouldInstall("SuperCursor")) SuperCursorRefreshSmoother.Patch(harmony);
         // SWC scanning must never run without its workplace/harvest safety guard.
         if (ModAvailability.ShouldInstall("SWC") && SWCHarvestSafety.Install(harmony))
+        {
             SWCScanOptimizer.Install(harmony);
+            SWCAllocationPatcher.Install(harmony);
+        }
         if (ModAvailability.ShouldInstall("PhysicsCatchup")) TimberPhysicsCatchUpLimiterPatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("PhysicsCollider")) TimberPhysicsTerrainColliderMergerPatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("GcSmoother")) IncrementalGcFrameHook.Install(harmony);
