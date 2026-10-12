@@ -75,10 +75,14 @@ public sealed class TBOptimizerPanel : VisualElement
             header.SetWidthPercent(100f);
             var toggle = header.AddToggle("", onValueChanged: v => OptimizationToggles.Set(key, v));
             toggle.SetValueWithoutNotify(OptimizationToggles.Enabled(key));
+            var available = ModAvailability.IsAvailable(key);
+            toggle.SetEnabled(available);
+            if (!available)
+                group.AddGameLabel("Not loaded / unsupported — toggle unavailable.").SetMarginBottom(2);
             group.AddGameLabel(item.Description).SetMarginBottom(2);
         }
         this.AddGameLabel("Not included: startup guards and benchmark update intervals.").SetMarginBottom(4);
-        this.AddGameLabel("GC smoothing is research-only; no active collection pulses.");
+        this.AddGameLabel("GC smoothing only activates when Unity supports incremental GC.");
     }
 }
 
