@@ -16,9 +16,9 @@ optional = {
     "BFR", "EBR", "FaunaBudget", "FaunaCache", "FaunaPrewarm",
     "SuperCursor", "PhysicsCatchup", "PhysicsCollider", "SWC",
 }
-defined = set(re.findall(r'new\\("([A-Za-z]+)"', toggles))
-mapped = set(re.findall(r'\\["([A-Za-z]+)"\\] = new\\[\\]', availability))
-registered = set(re.findall(r'ModAvailability\\.ShouldInstall\\("([A-Za-z]+)"\\)', starter))
+defined = set(re.findall(r'new\("([A-Za-z]+)"', toggles))
+mapped = set(re.findall(r'\["([A-Za-z]+)"\] = new\[\]', availability))
+registered = set(re.findall(r'ModAvailability\.ShouldInstall\("([A-Za-z]+)"\)', starter))
 
 errors = []
 if not optional <= defined:
@@ -42,9 +42,9 @@ for name in mod_patch_types:
     if name not in starter:
         errors.append(f"Expected optional patch registration missing: {name}")
 
-if re.search(r'OptimizationToggles\\.Enabled\\("(?:' + '|'.join(sorted(optional)) + r')"\\)', starter):
+if re.search(r'OptimizationToggles\.Enabled\("(?:' + '|'.join(sorted(optional)) + r')"\)', starter):
     errors.append("Optional patch bypasses loaded-mod detection")
 
 if errors:
-    raise SystemExit("\\n".join(errors))
+    raise SystemExit("\n".join(errors))
 print(f"Optional mod activation guards validated: {len(optional)} setting keys")
