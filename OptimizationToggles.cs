@@ -28,7 +28,7 @@ internal static class OptimizationToggles
         new("SuperCursor", "SuperCursor update smoothing", "Reduces frequent informational refreshes.\nDoes not delay player tool actions.", "Other mods"),
         new("PhysicsCatchup", "TimberPhysics catch-up limiter", "Limits expensive accumulated physics substeps.\nMay drop excess catch-up under overload.", "Other mods"),
         new("PhysicsCollider", "TimberPhysics collider merging", "Combines terrain colliders in 32x32 chunks.\nUpdates changed chunks in batches.", "Other mods"),
-        new("SWC", "SWC scans and harvest safety", "Optimizes SWC scan cadence with workplace safety.\nExperimental; requires compatible SWC.", "Other mods", false),
+        new("SWC", "SWC scans and harvest safety", "Optimizes SWC scans and protects workplaces.\nRuns only if a compatible SWC is loaded.", "Other mods"),
     };
     private static readonly Dictionary<string, bool> Values = new(StringComparer.Ordinal);
     private static string _path = "";
@@ -50,6 +50,7 @@ internal static class OptimizationToggles
 
     internal static bool Enabled(string key) => Values.TryGetValue(key, out var value) ? value :
         Array.Find(Options, item => item.Key == key)?.DefaultEnabled ?? false;
+    internal static bool Configured(string key) => Values.ContainsKey(key);
     internal static void Set(string key, bool value)
     {
         Values[key] = value;
