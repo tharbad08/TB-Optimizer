@@ -25,7 +25,7 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 | `SuperCursor` | SuperCursor | Adaptive 20/10/4 Hz informational refresh, without delaying tool input | On |
 | `PhysicsCatchup` | TimberPhysics | Cap physics backlog to four 0.02-second substeps and a ~50 ms budget; **excess backlog may be dropped** | On |
 | `PhysicsCollider` | TimberPhysics | Merge compatible terrain colliders in 32x32 dirty chunks; restore on error | On |
-| `SWC` | Simple Workshop Control | **Experimental**, starts harvest/workplace safety first, then staggers native harvest and planting scans every fourth tick while maintaining cooldown bookkeeping | **Off** |
+| `SWC` | Simple Workshop Control | Harvest/workplace safety, four-tick scans and version-checked allocation-reducing inner loops (automatic when SWC is loaded) | On (when loaded) |
 
 **SWC compatibility:** uses runtime discovery, with no bundled SWC DLL. Future SWC versions may change signatures or method IL and cause the optimization to skip. The separate [SWC fast-scanner prototype](https://github.com/tharbad08/TimberbornMods/blob/chatgpt/tb-optimizer-swc-compat/BenchmarkAndOptimizerV11Port/Optimizations/Mods/SWC/SWCFastScanner.cs) is not wired in this release. The port is **not yet equivalent** to the older modified SWC DLL's reusable harvest buffers and inner-loop allocation reductions. The workplace safety guard and scan scheduler have passed compilation, **not live gameplay validation**.
 
@@ -33,7 +33,7 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 
 | Setting | State | Why |
 | --- | --- | --- |
-| `GcSmoother` | Off by default; initializer only | Conditional Unity incremental-GC reflection exists, but no `Pulse` caller is installed, so enabling it does **not** currently improve GC pauses |
+| `GcSmoother` | On if supported, greyed out otherwise | CollectIncremental is called at most every 300 frames, with bounded budgets and heap thresholds; only where Unity reports incremental GC is enabled |
 | Startup DMD/type scanner guards | Not included | Separate `TBSave` research / startup safety work; no functioning TB Optimizer checkbox |
 | Per-system update intervals / tick protection | Not included | Belongs to the separate benchmark/CSV profiler; global dispatcher throttling previously stalled work and is excluded |
 
@@ -44,3 +44,7 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 - New checkboxes appear in a grouped vertical list and have a short explanation below each. Restart to apply changes.
 - Baseline every speed claim against the same save, camera and weather. Record **FPS and actual x1/x3 game speed**.
 - Source/limitations: [OPTIMIZATIONS.md](OPTIMIZATIONS.md) and [FAILED_EXPERIMENTS.md](FAILED_EXPERIMENTS.md).
+
+## Loaded-mod activation and disable rules
+
+The settings screen checks currently **loaded runtime types** rather than Workshop folder presence. Missing optional mods and unsupported incremental GC have disabled/greyed-out toggles with an explanation. If a mod is loaded, its optimization is enabled by default unless its key was explicitly set to false in `tb-optimizer-options.json`. The program never changes an explicit off setting when a mod becomes loaded. Reopen Mod Settings after activating/deactivating mods and restart the game to apply patches. Detection confirms loaded types, **not** full compatibility; patch methods independently verify expected signatures/IL before installing. GC is sampled at most every 300 updates and only requests incremental slices when supported. The SWC inner-scan delegate port is guarded by method/signature checks, and retains native scanning when binding fails; live gameplay validation remains required.
