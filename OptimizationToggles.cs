@@ -29,6 +29,7 @@ internal static class OptimizationToggles
         new("PhysicsCatchup", "TimberPhysics catch-up limiter", "Limits expensive accumulated physics substeps.\nMay drop excess catch-up under overload.", "Other mods"),
         new("PhysicsCollider", "TimberPhysics collider merging", "Combines terrain colliders in 32x32 chunks.\nUpdates changed chunks in batches.", "Other mods"),
         new("SWC", "SWC scans and harvest safety", "Optimizes SWC scans and protects workplaces.\nRuns only if a compatible SWC is loaded.", "Other mods"),
+        new("GcSmoother", "Incremental GC smoothing", "Schedules small GC slices when Unity supports it.\nNo effect if incremental GC is unavailable.", "Base game"),
     };
     private static readonly Dictionary<string, bool> Values = new(StringComparer.Ordinal);
     private static string _path = "";
