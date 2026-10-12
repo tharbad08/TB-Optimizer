@@ -1,0 +1,46 @@
+name: Build TB Optimizer
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build TB Optimizer
+        run: dotnet build BenchmarkAndOptimizerV11Port.csproj -c Release --nologo
+
+      - name: Package Timberborn mod (single installable artifact)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/timberborn-artifact/TBOptimizer/version-1.1"
+          mkdir -p "$ROOT/Scripts"
+          cp manifest.json "$ROOT/manifest.json"
+          cp bin/Release/netstandard2.1/TBOptimizer.dll "$ROOT/Scripts/"
+          test -s "$ROOT/Scripts/TBOptimizer.dll"
+          test -s "$ROOT/manifest.json"
+
+      - name: Upload ready-to-install package
+        uses: actions/upload-artifact@v4
+        with:
+          name: TBOptimizer_1.1.104
+          path: ${{ runner.temp }}/timberborn-artifact/
+          if-no-files-found: error
