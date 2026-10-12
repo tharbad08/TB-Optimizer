@@ -1,4 +1,4 @@
-# TB Optimizer 1.1.105 — settings and optimization list
+# TB Optimizer 1.1.106 — settings and optimization list
 
 Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. Settings persist in `tb-optimizer-options.json`; restart Timberborn after changing one. If a supported third-party mod is absent, its patch normally does not install. These are source-implementation statuses, **not** claims of in-game performance gains or compatibility with every installed version.
 
@@ -27,13 +27,13 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 | `PhysicsCollider` | TimberPhysics | Merge compatible terrain colliders in 32x32 dirty chunks; restore on error | On |
 | `SWC` | Simple Workshop Control | Harvest/workplace safety, four-tick scans and version-checked allocation-reducing inner loops (automatic when SWC is loaded) | On (when loaded) |
 
-**SWC compatibility:** uses runtime discovery, with no bundled SWC DLL. Future SWC versions may change signatures or method IL and cause the optimization to skip. The separate [SWC fast-scanner prototype](https://github.com/tharbad08/TimberbornMods/blob/chatgpt/tb-optimizer-swc-compat/BenchmarkAndOptimizerV11Port/Optimizations/Mods/SWC/SWCFastScanner.cs) is not wired in this release. The port is **not yet equivalent** to the older modified SWC DLL's reusable harvest buffers and inner-loop allocation reductions. The workplace safety guard and scan scheduler have passed compilation, **not live gameplay validation**.
+**SWC compatibility:** The reused harvest buffer and planting fast scans are wired through `SWCAllocationPatcher.cs` against the installed SWC `RefreshGoods` and `FindEmptySpot` methods. The port checks expected IL fields, Harmony owners and reflection bindings; native scanning is retained on mismatch/failure. No patched SWC DLL is distributed. The standalone DLL was tested separately, but this new Harmony port still needs in-game validation. SWC defaults on if loaded unless explicitly disabled.
 
-## Research / intentionally not active
+## Runtime-conditional GC and excluded research
 
 | Setting | State | Why |
 | --- | --- | --- |
-| `GcSmoother` | On if supported, greyed out otherwise | CollectIncremental is called at most every 300 frames, with bounded budgets and heap thresholds; only where Unity reports incremental GC is enabled |
+| `GcSmoother` | On if Unity supports it; greyed out otherwise | A new frame hook calls incremental GC at most every 300 updates above a 5.5 GiB managed-heap threshold, with bounded 0.5/1/2 ms budgets |
 | Startup DMD/type scanner guards | Not included | Separate `TBSave` research / startup safety work; no functioning TB Optimizer checkbox |
 | Per-system update intervals / tick protection | Not included | Belongs to the separate benchmark/CSV profiler; global dispatcher throttling previously stalled work and is excluded |
 
