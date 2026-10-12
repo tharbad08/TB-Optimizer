@@ -10,12 +10,10 @@ internal static class IncrementalGcFrameHook
     private static int _frames;
     internal static bool Install(Harmony harmony)
     {
-        if (!IncrementalGcSmoother.IsSupported) return false;
         var type = AccessTools.TypeByName("Timberborn.SingletonSystem.SingletonLifecycleService");
         var update = type is null ? null : AccessTools.Method(type, "UpdateSingletons");
         var callback = AccessTools.Method(typeof(IncrementalGcFrameHook), nameof(AfterUpdate));
         if (update is null || callback is null) return false;
-        IncrementalGcSmoother.Initialize();
         try { harmony.Patch(update, postfix: new HarmonyMethod(callback)); return true; }
         catch { return false; }
     }
@@ -24,6 +22,6 @@ internal static class IncrementalGcFrameHook
     {
         if (++_frames < 300) return;
         _frames = 0;
-        IncrementalGcSmoother.Pulse(GC.GetTotalMemory(false));
+        IncrementalGcSmoother.CheckAndCollect();
     }
 }
