@@ -9,3 +9,7 @@ This branch contains **only individually switchable gameplay optimizations**. It
 - The [TBSave](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/TBSave) research branch holds startup crash-guard code and save/load profiling research; the startup guard is not itself a save optimization.
 
 Restart after changing an individual feature toggle. No global dispatcher hooks, broad profiling or per-system sliders are installed by this mod.
+
+## Mod Settings — v1.1.105
+
+The settings panel groups individual toggles for base-game and optional third-party optimizations. The experimental **SWC scans and harvest safety** option is **off by default**; it installs the workplace safety guard before optional scan scheduling, uses the installed Workshop SWC DLL and can be disabled independently. Other retained optimizations preserve existing saved settings and restart semantics. The GC initializer is explicitly labelled research-only and defaults off (it does not currently call collection pulses). Startup dynamic-assembly guards and benchmark per-system intervals are **not shipped by TB Optimizer** and are not represented as functioning checkboxes. See [FEATURE-LIST.md](FEATURE-LIST.md).
