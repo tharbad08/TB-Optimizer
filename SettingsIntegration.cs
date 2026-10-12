@@ -55,15 +55,20 @@ public sealed class TBOptimizerPanel : VisualElement
         this.SetPadding(8);
         this.AddGameLabel("TB Optimizer — optimizations", bold: true).SetMarginBottom(6);
         this.AddGameLabel("Changes take effect after restarting Timberborn.").SetMarginBottom(10);
+        var list = this.AddScrollView();
+        list.mode = ScrollViewMode.Vertical;
+        list.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        list.verticalScrollerVisibility = ScrollerVisibility.Auto;
+        list.SetMaxHeight(690f);
         string? currentGroup = null;
         foreach (var item in OptimizationToggles.Options)
         {
             if (currentGroup != item.Group)
             {
                 currentGroup = item.Group;
-                this.AddGameLabel(currentGroup, bold: true).SetMarginBottom(7);
+                list.AddGameLabel(currentGroup, bold: true).SetMarginBottom(7);
             }
-            var group = this.AddChild().SetMarginBottom(12);
+            var group = list.AddChild().SetMarginBottom(12);
             var key = item.Key;
             var header = group.AddRow().AlignItems(Align.Center);
             header.AddGameLabel(item.Label).SetMarginRight(8f);
