@@ -55,16 +55,30 @@ public sealed class TBOptimizerPanel : VisualElement
         this.SetPadding(8);
         this.AddGameLabel("TB Optimizer — optimizations", bold: true).SetMarginBottom(6);
         this.AddGameLabel("Changes take effect after restarting Timberborn.").SetMarginBottom(10);
+        var list = this.AddScrollView();
+        list.mode = ScrollViewMode.Vertical;
+        list.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        list.verticalScrollerVisibility = ScrollerVisibility.Auto;
+        list.SetMaxHeight(690f);
+        string? currentGroup = null;
         foreach (var item in OptimizationToggles.Options)
         {
-            var group = this.AddChild().SetMarginBottom(11);
+            if (currentGroup != item.Group)
+            {
+                currentGroup = item.Group;
+                list.AddGameLabel(currentGroup, bold: true).SetMarginBottom(7);
+            }
+            var group = list.AddChild().SetMarginBottom(12);
             var key = item.Key;
             var header = group.AddRow().AlignItems(Align.Center);
             header.AddGameLabel(item.Label).SetMarginRight(8f);
+            header.SetWidthPercent(100f);
             var toggle = header.AddToggle("", onValueChanged: v => OptimizationToggles.Set(key, v));
             toggle.SetValueWithoutNotify(OptimizationToggles.Enabled(key));
             group.AddGameLabel(item.Description).SetMarginBottom(2);
         }
+        this.AddGameLabel("Not included: startup guards and benchmark update intervals.").SetMarginBottom(4);
+        this.AddGameLabel("GC smoothing is research-only; no active collection pulses.");
     }
 }
 
