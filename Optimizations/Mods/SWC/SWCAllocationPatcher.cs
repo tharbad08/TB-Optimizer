@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Linq;
 using HarmonyLib;
 
 namespace BenchmarkAndOptimizerV11;
@@ -16,6 +17,22 @@ internal static class SWCAllocationPatcher
     private static SWCFastScanner.Plant? _plant;
     private static bool _harvestFailed, _plantFailed;
 
+    private static bool UnmodifiedShape(MethodInfo method, params string[] fields)
+    {
+        try
+        {
+            // A future SWC release may keep the same method name and return type
+            // while changing its responsibilities. Do not replace unknown logic.
+            if (method.GetMethodBody() is null) return false;
+            var il = PatchProcessor.GetOriginalInstructions(method).ToArray();
+            if (il.Length < 15 || il.Any(i => i.blocks.Count != 0)) return false;
+            var info = Harmony.GetPatchInfo(method);
+            if (info is not null && (info.Prefixes.Count > 0 || info.Transpilers.Count > 0)) return false;
+            return fields.All(name => il.Any(i => i.operand is FieldInfo f && f.Name == name));
+        }
+        catch { return false; }
+    }
+
     internal static void Install(Harmony harmony)
     {
         var hType = AccessTools.TypeByName("TonWolfe.SimpleWorkshopControl.PlantMonitor");
@@ -26,7 +43,9 @@ internal static class SWCAllocationPatcher
             return; // Old performance DLL already implements this optimization.
         var refresh = AccessTools.DeclaredMethod(hType, "RefreshGoods", Type.EmptyTypes);
         var emptySpot = AccessTools.DeclaredMethod(pType, "FindEmptySpot", Type.EmptyTypes);
-        if (refresh?.ReturnType != typeof(bool) || emptySpot?.ReturnType != typeof(bool)) return;
+        if (refresh?.ReturnType != typeof(bool) || emptySpot?.ReturnType != typeof(bool) ||
+            !UnmodifiedShape(refresh, "goods", "inRangeYielders") ||
+            !UnmodifiedShape(emptySpot, "inRangePlantingCoordinates", "plantingSoilValidator")) return;
         var hp = SWCFastScanner.CreateHarvest(hType);
         var pp = SWCFastScanner.CreatePlant(pType);
         if (hp is null || pp is null) return;
