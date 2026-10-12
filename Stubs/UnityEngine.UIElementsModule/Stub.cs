@@ -25,6 +25,7 @@ namespace UnityEngine.UIElements
         Stretch
     }
     public enum DisplayStyle { Flex, None }
+    public enum WhiteSpace { Normal, NoWrap }
     public enum Position { Relative, Absolute }
     public readonly struct StyleLength { public static implicit operator StyleLength(float value) => new StyleLength(); }
     public readonly struct StyleEnum<T> where T : struct
@@ -37,6 +38,8 @@ namespace UnityEngine.UIElements
         StyleEnum<Position> position { get; set; }
         StyleLength left { get; set; }
         StyleLength top { get; set; }
+        StyleEnum<WhiteSpace> whiteSpace { get; set; }
+        float opacity { get; set; }
     }
     public class EventBase { }
     public class DetachFromPanelEvent : EventBase { }

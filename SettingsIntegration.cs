@@ -18,8 +18,7 @@ public sealed class MainMenuConfig : Configurator
 {
     public override void Configure() =>
         this.BindSingleton<OptimizerSettingsOwner>()
-            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>()
-            .BindSingleton<OptimizerSettingsBoxWidthService>();
+            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>();
 }
 
 [Context("Game")]
@@ -27,8 +26,7 @@ public sealed class GameConfig : Configurator
 {
     public override void Configure() =>
         this.BindSingleton<OptimizerSettingsOwner>()
-            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>()
-            .BindSingleton<OptimizerSettingsBoxWidthService>();
+            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>();
 }
 
 public sealed class OptimizerSettingsOwner(
@@ -48,42 +46,79 @@ public sealed class TBOptimizerUiSetting()
     public override void Reset() { }
 }
 
+/// <summary>
+/// Uses the native Mod Settings window (590px default) and its existing outer
+/// ScrollView. Do not set ModSettingsBox width globally: other mods, including
+/// TimberCommons, share the same singleton settings window.
+/// </summary>
 public sealed class TBOptimizerPanel : VisualElement
 {
     public TBOptimizerPanel()
     {
-        this.SetPadding(8);
-        this.AddGameLabel("TB Optimizer — optimizations", bold: true).SetMarginBottom(6);
-        this.AddGameLabel("Changes take effect after restarting Timberborn.").SetMarginBottom(10);
-        var list = this.AddScrollView();
-        list.mode = ScrollViewMode.Vertical;
-        list.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-        list.verticalScrollerVisibility = ScrollerVisibility.Auto;
-        list.SetMaxHeight(690f);
+        this.SetPadding(10f);
+        this.AddGameLabel("TB Optimizer", bold: true, centered: true)
+            .SetMarginBottom(4f);
+        this.AddGameLabel("Changes apply after restarting Timberborn.", centered: true)
+            .SetMarginBottom(10f);
+
+        // ModSettingsBox already hosts its content inside a vertical ScrollView.
+        // An inner ScrollView causes double-scroll areas and clipped explanations.
+        var list = this.AddChild();
+        list.SetWidthPercent(100f);
+
         string? currentGroup = null;
         foreach (var item in OptimizationToggles.Options)
         {
             if (currentGroup != item.Group)
             {
                 currentGroup = item.Group;
-                list.AddGameLabel(currentGroup, bold: true).SetMarginBottom(7);
+                list.AddGameLabel(currentGroup, bold: true, centered: true)
+                    .SetMargin(17f, 0f, 12f, 0f);
             }
-            var group = list.AddChild().SetMarginBottom(12);
-            var key = item.Key;
-            var header = group.AddRow().AlignItems(Align.Center);
-            header.AddGameLabel(item.Label).SetMarginRight(8f);
+
+            var setting = list.AddChild().SetMarginBottom(9f);
+            setting.SetWidthPercent(100f);
+
+            // Match Mod Settings' native two-column rows, with a left label
+            // and a right-aligned checkbox, rather than packing both together.
+            var header = setting.AddRow();
+            header.AddToClassList("mod-setting__wrapper");
             header.SetWidthPercent(100f);
-            var toggle = header.AddToggle("", onValueChanged: v => OptimizationToggles.Set(key, v));
+
+            var caption = header.AddGameLabel(item.Label);
+            caption.SetFlexGrow(1f);
+            caption.style.whiteSpace = WhiteSpace.Normal;
+
+            var key = item.Key;
+            var toggle = header.AddToggle(
+                "", onValueChanged: value => OptimizationToggles.Set(key, value));
+            toggle.SetMarginRight(12f);
+            toggle.SetValueWithoutNotify(
+                ModAvailability.IsAvailable(key) && OptimizationToggles.Enabled(key));
+
             var available = ModAvailability.IsAvailable(key);
-            toggle.SetValueWithoutNotify(available && OptimizationToggles.Enabled(key));
             toggle.SetEnabled(available);
+
+            // Short explanations were a deliberate design requirement: retain
+            // them under the setting, but visually de-emphasize secondary text.
+            var explanation = setting.AddGameLabel(item.Description);
+            explanation.SetMargin(0f, 25f, 2f, 0f);
+            explanation.style.whiteSpace = WhiteSpace.Normal;
+            explanation.style.opacity = 0.78f;
+
             if (key == "GcSmoother")
-                group.AddGameLabel(IncrementalGcSmoother.StatusDescription).SetMarginBottom(2);
+            {
+                var status = setting.AddGameLabel(IncrementalGcSmoother.StatusDescription);
+                status.SetMargin(0f, 25f, 2f, 0f);
+                status.style.whiteSpace = WhiteSpace.Normal;
+            }
             else if (!available)
-                group.AddGameLabel("Not loaded / unsupported — toggle unavailable.").SetMarginBottom(2);
-            group.AddGameLabel(item.Description).SetMarginBottom(2);
+            {
+                var status = setting.AddGameLabel("Mod not loaded — setting unavailable.");
+                status.SetMargin(0f, 25f, 2f, 0f);
+                status.style.whiteSpace = WhiteSpace.Normal;
+            }
         }
-        this.AddGameLabel("GC support is rechecked every 300 game updates.");
     }
 }
 
@@ -99,17 +134,5 @@ public sealed class OptimizerSettingElementFactory : IModSettingElementFactory
         }
         element = null;
         return false;
-    }
-}
-
-public sealed class OptimizerSettingsBoxWidthService(IContainer container) : IPostLoadableSingleton
-{
-    public void PostLoad()
-    {
-        try
-        {
-            container.GetInstance<ModSettingsBox>().GetPanel().Q("Box")?.SetWidth(885f);
-        }
-        catch { /* Fallback to normal settings width. */ }
     }
 }
