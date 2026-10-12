@@ -77,12 +77,14 @@ public sealed class TBOptimizerPanel : VisualElement
             var available = ModAvailability.IsAvailable(key);
             toggle.SetValueWithoutNotify(available && OptimizationToggles.Enabled(key));
             toggle.SetEnabled(available);
-            if (!available)
+            if (key == "GcSmoother")
+                group.AddGameLabel(IncrementalGcSmoother.StatusDescription).SetMarginBottom(2);
+            else if (!available)
                 group.AddGameLabel("Not loaded / unsupported — toggle unavailable.").SetMarginBottom(2);
             group.AddGameLabel(item.Description).SetMarginBottom(2);
         }
         this.AddGameLabel("Not included: startup guards and benchmark update intervals.").SetMarginBottom(4);
-        this.AddGameLabel("GC smoothing only activates when Unity supports incremental GC.");
+        this.AddGameLabel("GC support is rechecked every 300 game updates.");
     }
 }
 
