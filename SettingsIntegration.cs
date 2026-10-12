@@ -74,8 +74,8 @@ public sealed class TBOptimizerPanel : VisualElement
             header.AddGameLabel(item.Label).SetMarginRight(8f);
             header.SetWidthPercent(100f);
             var toggle = header.AddToggle("", onValueChanged: v => OptimizationToggles.Set(key, v));
-            toggle.SetValueWithoutNotify(OptimizationToggles.Enabled(key));
             var available = ModAvailability.IsAvailable(key);
+            toggle.SetValueWithoutNotify(available && OptimizationToggles.Enabled(key));
             toggle.SetEnabled(available);
             if (!available)
                 group.AddGameLabel("Not loaded / unsupported — toggle unavailable.").SetMarginBottom(2);
