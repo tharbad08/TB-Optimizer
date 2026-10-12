@@ -33,7 +33,7 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 
 | Setting | State | Why |
 | --- | --- | --- |
-| `GcSmoother` | On if Unity supports it; greyed out otherwise | A new frame hook calls incremental GC at most every 300 updates above a 5.5 GiB managed-heap threshold, with bounded 0.5/1/2 ms budgets |
+| `GcSmoother` | Enabled by user preference; runtime checked every 300 updates | A lightweight hook checks Unity's current GC mode every 300 singleton updates. If incremental GC is enabled and managed heap exceeds 5.5 GiB, requests bounded 0.5/1/2 ms slices; otherwise no collection is requested |
 | Startup DMD/type scanner guards | Not included | Separate `TBSave` research / startup safety work; no functioning TB Optimizer checkbox |
 | Per-system update intervals / tick protection | Not included | Belongs to the separate benchmark/CSV profiler; global dispatcher throttling previously stalled work and is excluded |
 
@@ -48,3 +48,5 @@ Each implemented option has a checkbox under **TB Optimizer** in Mod Settings. S
 ## Loaded-mod activation and disable rules
 
 The settings screen checks currently **loaded runtime types** rather than Workshop folder presence. Missing optional mods and unsupported incremental GC have disabled/greyed-out toggles with an explanation. If a mod is loaded, its optimization is enabled by default unless its key was explicitly set to false in `tb-optimizer-options.json`. The program never changes an explicit off setting when a mod becomes loaded. Reopen Mod Settings after activating/deactivating mods and restart the game to apply patches. Detection confirms loaded types, **not** full compatibility; patch methods independently verify expected signatures/IL before installing. GC is sampled at most every 300 updates and only requests incremental slices when supported. The SWC inner-scan delegate port is guarded by method/signature checks, and retains native scanning when binding fails; live gameplay validation remains required.
+
+**GC timing:** `isIncremental` is an engine-wide runtime setting, usually the same in the main menu and gameplay, but its initial false value does not permanently disable the feature. The GC checkbox remains changeable; the settings panel reports whether the API is currently available and/or enabled. Every 300 **update callbacks**, not heap allocations or heap changes, the hook retries API binding and checks mode. `GC.GetTotalMemory(false)` is sampled only when incremental GC is actually enabled; a running game below the 5.5 GiB threshold will take no explicit GC action.

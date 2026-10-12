@@ -1,150 +1,134 @@
-using System.Collections;
+using System;
 using System.Reflection;
-using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
-using Newtonsoft.Json;
 using HarmonyLib;
-using Timberborn.ModManagerScene;
 
 namespace BenchmarkAndOptimizerV11;
 
+/// <summary>
+/// The Unity incremental GC capability is an engine setting, not a property of
+/// an individual Timberborn save. Keep polling: a false value at the main menu
+/// must not permanently suppress the optional in-game GC hook.
+/// </summary>
 internal static class IncrementalGcSmoother
 {
     private const long StartHeapBytes = 5632L * 1024L * 1024L;
     private const long HighHeapBytes = 6144L * 1024L * 1024L;
     private const long VeryHighHeapBytes = 6656L * 1024L * 1024L;
+
     private const ulong NormalBudgetNanoseconds = 500_000UL;
     private const ulong HighBudgetNanoseconds = 1_000_000UL;
     private const ulong VeryHighBudgetNanoseconds = 2_000_000UL;
 
+    private const BindingFlags StaticPublic = BindingFlags.Static | BindingFlags.Public;
     private static Func<ulong, bool>? _collectIncremental;
     private static Func<bool>? _isIncremental;
-    private static bool _disabled;
-    internal static bool IsSupported
+    // Set only after an actual runtime failure, NOT when isIncremental is false.
+    private static bool _runtimeFailed;
+
+    // API presence and the *current value* of isIncremental are separate facts.
+    // Retry binding if an engine assembly was not yet available at startup.
+    internal static bool IsSupported => EnsureBound();
+
+    internal static bool IsIncrementalNow
     {
         get
         {
-            try
-            {
-                var type = AccessTools.TypeByName("UnityEngine.Scripting.GarbageCollector");
-                var prop = type?.GetProperty("isIncremental", BindingFlags.Public | BindingFlags.Static);
-                var method = type?.GetMethod("CollectIncremental", BindingFlags.Public | BindingFlags.Static,
-                    null, new[] { typeof(ulong) }, null);
-                return prop?.GetValue(null) is true && method?.ReturnType == typeof(bool);
-            }
+            if (_runtimeFailed || !EnsureBound()) return false;
+            try { return _isIncremental!(); }
             catch { return false; }
         }
     }
-    private static bool _loggedActive;
-    private static bool _loggedUnavailable;
 
-    public static void Initialize()
+    internal static string StatusDescription
     {
-        if (!IsSupported) return;
-        try
+        get
         {
-            var type = AccessTools.TypeByName("UnityEngine.Scripting.GarbageCollector");
-            if (type is null)
-            {
-                LogUnavailable("Unity incremental GC type not found");
-                return;
-            }
-
-            var collect = type.GetMethod(
-                "CollectIncremental",
-                BindingFlags.Static | BindingFlags.Public,
-                binder: null,
-                types: new[] { typeof(ulong) },
-                modifiers: null);
-            var incrementalProperty = type.GetProperty(
-                "isIncremental",
-                BindingFlags.Static | BindingFlags.Public);
-
-            if (collect is null || collect.ReturnType != typeof(bool))
-            {
-                LogUnavailable("CollectIncremental(ulong) not found");
-                return;
-            }
-
-            _collectIncremental =
-                (Func<ulong, bool>)collect.CreateDelegate(typeof(Func<ulong, bool>));
-
-            var getter = incrementalProperty?.GetGetMethod();
-            if (getter is not null && getter.ReturnType == typeof(bool))
-            {
-                _isIncremental =
-                    (Func<bool>)getter.CreateDelegate(typeof(Func<bool>));
-            }
-
-            Runtime.Log(
-                "incremental GC smoother installed: no forced full collections; " +
-                "when managed heap exceeds 5.5GiB, request bounded 0.5/1/2ms incremental slices");
-        }
-        catch (Exception ex)
-        {
-            LogUnavailable($"{ex.GetType().Name}: {ex.Message}");
+            if (_runtimeFailed)
+                return "GC helper stopped after a runtime error; restart required.";
+            if (!EnsureBound())
+                return "Unity GC API not found yet; rechecked every 300 updates.";
+            return IsIncrementalNow
+                ? "Unity incremental GC enabled; heap threshold still applies."
+                : "Unity incremental GC currently off; checking every 300 updates.";
         }
     }
 
-    public static void Pulse(long heapBytes)
+    internal static void Initialize() => EnsureBound();
+
+    private static bool EnsureBound()
     {
-        if (_disabled || _collectIncremental is null || heapBytes < StartHeapBytes)
-        {
-            return;
-        }
+        if (_collectIncremental is not null && _isIncremental is not null)
+            return true;
 
         try
         {
-            if (_isIncremental is not null && !_isIncremental())
+            var type = AccessTools.TypeByName("UnityEngine.Scripting.GarbageCollector");
+            if (type is null) return false;
+
+            var collect = type.GetMethod(
+                "CollectIncremental", StaticPublic,
+                binder: null, types: new[] { typeof(ulong) }, modifiers: null);
+            if (collect is null || !collect.IsStatic || collect.ReturnType != typeof(bool))
+                return false;
+
+            // Unity versions have represented isIncremental as either a
+            // property or a static field. Handle both without setting it.
+            Func<bool>? enabled = null;
+            var prop = type.GetProperty("isIncremental", StaticPublic);
+            var getter = prop?.GetGetMethod();
+            if (prop?.PropertyType == typeof(bool) && getter is { IsStatic: true })
+                enabled = (Func<bool>)getter.CreateDelegate(typeof(Func<bool>));
+
+            if (enabled is null)
             {
-                _disabled = true;
-                LogUnavailable("Unity reports incremental GC disabled");
-                return;
+                var field = type.GetField("isIncremental", StaticPublic);
+                if (field is { IsStatic: true } && field.FieldType == typeof(bool))
+                    enabled = () => (bool)field.GetValue(null)!;
             }
 
-            var budget = heapBytes >= VeryHighHeapBytes
+            if (enabled is null) return false;
+
+            _collectIncremental = (Func<ulong, bool>)collect.CreateDelegate(typeof(Func<ulong, bool>));
+            _isIncremental = enabled;
+            return true;
+        }
+        catch
+        {
+            // A failed reflection probe does not mean the engine cannot later
+            // expose its API. Retry at the next 300-update checkpoint.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Called only every 300 game singleton-update callbacks. No heap sampling
+    /// or GC work is done when incremental collection is currently unavailable.
+    /// </summary>
+    internal static void CheckAndCollect()
+    {
+        if (_runtimeFailed || !EnsureBound()) return;
+
+        try
+        {
+            // Do not persist this false result; the next interval rechecks it.
+            if (!_isIncremental!()) return;
+
+            // This is *managed heap*, not total process RAM/VRAM.
+            long heapBytes = GC.GetTotalMemory(false);
+            if (heapBytes < StartHeapBytes) return;
+
+            ulong budget = heapBytes >= VeryHighHeapBytes
                 ? VeryHighBudgetNanoseconds
                 : heapBytes >= HighHeapBytes
                     ? HighBudgetNanoseconds
                     : NormalBudgetNanoseconds;
-
-            var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            _collectIncremental(budget);
-            var elapsed =
-                System.Diagnostics.Stopwatch.GetTimestamp() - started;
-            var elapsedMs =
-                elapsed * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-
-            if (!_loggedActive)
-            {
-                _loggedActive = true;
-                Runtime.Log(
-                    $"incremental GC smoother active at {heapBytes / 1024.0 / 1024.0:F0}MiB heap; " +
-                    $"requested budget={budget / 1_000_000.0:F1}ms");
-            }
-
-            if (elapsedMs >= 20.0)
-            {
-                Runtime.Log(
-                    $"incremental GC slice exceeded soft budget: " +
-                    $"requested={budget / 1_000_000.0:F1}ms actual={elapsedMs:F1}ms");
-            }
+            _collectIncremental!(budget);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _disabled = true;
-            LogUnavailable($"runtime call failed: {ex.GetType().Name}: {ex.Message}");
+            // A genuine runtime failure is not retried indefinitely; the
+            // explicit setting remains saved and normal Unity GC is unchanged.
+            _runtimeFailed = true;
         }
-    }
-
-    private static void LogUnavailable(string reason)
-    {
-        if (_loggedUnavailable)
-        {
-            return;
-        }
-
-        _loggedUnavailable = true;
-        Runtime.Log($"incremental GC smoother unavailable; vanilla GC retained: {reason}");
     }
 }
