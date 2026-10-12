@@ -4,7 +4,7 @@ This branch contains **only individually switchable gameplay optimizations**. It
 
 - Complete final optimization list, settings keys, per-file implementation map and PR guidance: [OPTIMIZATIONS.md](OPTIMIZATIONS.md).
 - **Do-not-repeat register** of crashes, failed optimizations, rejected shortcuts, inconclusive diagnostics and safe alternatives: [FAILED_EXPERIMENTS.md](FAILED_EXPERIMENTS.md).
-- SWC (experimental, disabled by default): integrated optional harvest/workplace safety plus partial scan scheduling; the deep allocation optimizations are not active. Details: [SWC reference and compatibility](OPTIMIZATIONS.md#simple-workshop-control-swc--documented-port-not-in-this-branchs-release) and [FEATURE-LIST.md](FEATURE-LIST.md).
+- SWC (automatic when loaded unless explicitly switched off): harvest/workplace safety, four-tick scan scheduling, and guarded allocation-reducing harvest/planting scans. Details: [SWC reference and compatibility](OPTIMIZATIONS.md#simple-workshop-control-swc--documented-port-not-in-this-branchs-release) and [FEATURE-LIST.md](FEATURE-LIST.md).
 - The separate [BenchmarkAndOptimizerV11Port](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/BenchmarkAndOptimizerV11Port) branch owns interval controls, protected tick policy, CSV benchmarks and diagnostic profiling.
 - The [TBSave](https://github.com/tharbad08/TimberbornMods/tree/chatgpt/TBSave) research branch holds startup crash-guard code and save/load profiling research; the startup guard is not itself a save optimization.
 
@@ -12,4 +12,8 @@ Restart after changing an individual feature toggle. No global dispatcher hooks,
 
 ## Mod Settings — v1.1.105
 
-The settings panel groups individual toggles for base-game and optional third-party optimizations. The experimental **SWC scans and harvest safety** option is **off by default**; it installs the workplace safety guard before optional scan scheduling, uses the installed Workshop SWC DLL and can be disabled independently. Other retained optimizations preserve existing saved settings and restart semantics. The GC initializer is explicitly labelled research-only and defaults off (it does not currently call collection pulses). Startup dynamic-assembly guards and benchmark per-system intervals are **not shipped by TB Optimizer** and are not represented as functioning checkboxes. See [FEATURE-LIST.md](FEATURE-LIST.md).
+The settings panel groups individual toggles for base-game and optional third-party optimizations. The **SWC scans and harvest safety** option defaults to enabled for an available SWC mod unless explicitly disabled. Its runtime patches install in safety-first order and never replace the installed SWC DLL. Other retained optimizations preserve existing saved settings and restart semantics. Incremental GC now has an active frame hook, requesting bounded slices only if Unity reports incremental GC supported and the managed heap is sufficiently large. Startup dynamic-assembly guards and benchmark per-system intervals are **not shipped by TB Optimizer** and are not represented as functioning checkboxes. See [FEATURE-LIST.md](FEATURE-LIST.md).
+
+### Availability-aware settings (v1.1.106)
+
+Optional mods are detected through loaded runtime types. Their optimization checkboxes default on but become disabled and unchecked if those types are absent. Saved off preferences are retained when the mod is re-enabled. This is loaded-type detection, not a guarantee of method-level compatibility; each patch also guards its own signatures. Restart after changes. The new SWC Harmony port and conditional GC collector require live gameplay validation; compilation alone is not proof.

@@ -20,11 +20,27 @@ internal static class IncrementalGcSmoother
     private static Func<ulong, bool>? _collectIncremental;
     private static Func<bool>? _isIncremental;
     private static bool _disabled;
+    internal static bool IsSupported
+    {
+        get
+        {
+            try
+            {
+                var type = AccessTools.TypeByName("UnityEngine.Scripting.GarbageCollector");
+                var prop = type?.GetProperty("isIncremental", BindingFlags.Public | BindingFlags.Static);
+                var method = type?.GetMethod("CollectIncremental", BindingFlags.Public | BindingFlags.Static,
+                    null, new[] { typeof(ulong) }, null);
+                return prop?.GetValue(null) is true && method?.ReturnType == typeof(bool);
+            }
+            catch { return false; }
+        }
+    }
     private static bool _loggedActive;
     private static bool _loggedUnavailable;
 
     public static void Initialize()
     {
+        if (!IsSupported) return;
         try
         {
             var type = AccessTools.TypeByName("UnityEngine.Scripting.GarbageCollector");
