@@ -26,7 +26,7 @@ internal static class ModAvailability
             "GcSmoother" => null,
             _ => Array.Empty<string>()
         };
-        if (key == "GcSmoother") return IncrementalGcSmoother.IsSupported;
+        if (key == "GcSmoother") return true; // Poll runtime GC mode rather than disabling the toggle.
         if (names is null) return false;
         foreach (var name in names)
             if (AccessTools.TypeByName(name) is null) return false;
