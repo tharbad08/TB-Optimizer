@@ -17,3 +17,7 @@ The settings panel groups individual toggles for base-game and optional third-pa
 ### Availability-aware settings (v1.1.106)
 
 Optional mods are detected through loaded runtime types. Their optimization checkboxes default on but become disabled and unchecked if those types are absent. Saved off preferences are retained when the mod is re-enabled. This is loaded-type detection, not a guarantee of method-level compatibility; each patch also guards its own signatures. Restart after changes. The new SWC Harmony port and conditional GC collector require live gameplay validation; compilation alone is not proof.
+
+### GC runtime polling
+
+The GC setting can be enabled in the main menu even if Unity currently reports incremental collection disabled. TB Optimizer installs a lightweight hook and rechecks the current engine mode every 300 `SingletonLifecycleService.UpdateSingletons` calls during gameplay. The counter measures **update callbacks**, not heap mutations; managed heap size is sampled only if incremental GC is enabled. Below 5.5 GiB managed heap no explicit slice is requested. No game GC mode is forced on.
