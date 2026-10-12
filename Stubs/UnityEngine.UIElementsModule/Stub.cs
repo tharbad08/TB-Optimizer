@@ -58,6 +58,7 @@ namespace UnityEngine.UIElements
         public void Add(VisualElement child) { }
         public void AddToClassList(string className) { }
         public void Clear() { }
+        public void SetEnabled(bool enabled) { }
         public void RegisterCallback<TEventType>(EventCallback<TEventType> callback) where TEventType : EventBase { }
     }
 

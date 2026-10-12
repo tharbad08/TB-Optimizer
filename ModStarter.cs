@@ -12,25 +12,28 @@ public sealed class ModStarter : IModStarter
     {
         OptimizationToggles.Initialize(modEnvironment.ModPath);
         var harmony = new Harmony("tharbad08.TBOptimizer");
-        if (OptimizationToggles.Enabled("BFR")) BfrLocalizedChangeOptimizerPatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("EBR") && EbrDeferredDrainHook.Install(harmony))
+        if (ModAvailability.ShouldInstall("BFR")) BfrLocalizedChangeOptimizerPatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("EBR") && EbrDeferredDrainHook.Install(harmony))
             ExtendedBuilderReachNavOptimizer.Patch(harmony);
         if (OptimizationToggles.Enabled("PreviewNav")) PreviewNavMeshBatcher.Patch(harmony);
         if (OptimizationToggles.Enabled("PreviewPool")) UnusedPreviewPoolFastPath.Patch(harmony);
         if (OptimizationToggles.Enabled("PreviewSweep")) FullyBuildablePreviewFastPath.Patch(harmony);
         if (OptimizationToggles.Enabled("BlueprintCache")) BlueprintSpecInstantiationCache.Patch(harmony);
         if (OptimizationToggles.Enabled("BulkBuild")) BulkComponentInstantiationFastPath.Patch(harmony);
-        if (OptimizationToggles.Enabled("FaunaBudget")) FaunaSpawnBudgetPatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("FaunaCache")) FaunaRecipeLookupCachePatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("FaunaPrewarm")) KeystoneFaunaTemplatePrewarmer.Patch(harmony);
+        if (ModAvailability.ShouldInstall("FaunaBudget")) FaunaSpawnBudgetPatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("FaunaCache")) FaunaRecipeLookupCachePatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("FaunaPrewarm")) KeystoneFaunaTemplatePrewarmer.Patch(harmony);
         if (OptimizationToggles.Enabled("SoilReset")) SoilContaminationResetOptimizer.Patch(harmony);
-        if (OptimizationToggles.Enabled("SuperCursor")) SuperCursorRefreshSmoother.Patch(harmony);
+        if (ModAvailability.ShouldInstall("SuperCursor")) SuperCursorRefreshSmoother.Patch(harmony);
         // SWC scanning must never run without its workplace/harvest safety guard.
-        if (OptimizationToggles.Enabled("SWC") && SWCHarvestSafety.Install(harmony))
+        if (ModAvailability.ShouldInstall("SWC") && SWCHarvestSafety.Install(harmony))
+        {
             SWCScanOptimizer.Install(harmony);
-        if (OptimizationToggles.Enabled("PhysicsCatchup")) TimberPhysicsCatchUpLimiterPatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("PhysicsCollider")) TimberPhysicsTerrainColliderMergerPatcher.Patch(harmony);
-        if (OptimizationToggles.Enabled("GcSmoother")) IncrementalGcSmoother.Initialize();
+            SWCAllocationPatcher.Install(harmony);
+        }
+        if (ModAvailability.ShouldInstall("PhysicsCatchup")) TimberPhysicsCatchUpLimiterPatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("PhysicsCollider")) TimberPhysicsTerrainColliderMergerPatcher.Patch(harmony);
+        if (ModAvailability.ShouldInstall("GcSmoother")) IncrementalGcFrameHook.Install(harmony);
     }
 }
 
