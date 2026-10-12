@@ -14,17 +14,17 @@ internal static class OptimizationToggles
     internal sealed record Entry(string Key, string Label, string Description, string Group, bool DefaultEnabled = true);
     internal static readonly Entry[] Options =
     {
-        new("BFR", "BFR local navigation batching", "Groups sparse terrain changes in 8x8 areas.\nAvoids unnecessary large-area scans.", "Other mods"),
-        new("EBR", "EBR spatial navigation updates", "Filters unaffected builders by terrain bounds.\nDefers large notification batches safely.", "Other mods"),
         new("PreviewNav", "Preview navigation batching", "Coalesces preview add/remove notifications.\nPreserves validation and navigation results.", "Base game"),
         new("PreviewPool", "Unused preview pool fast path", "Avoids creating previews for a brush\nthat was never displayed.", "Base game"),
         new("PreviewSweep", "Efficient preview hide sweep", "Removes repeated LINQ/HashSet allocations\nwhile keeping preview validation intact.", "Base game"),
         new("BlueprintCache", "Blueprint ComponentSpec cache", "Caches immutable blueprint component lookups\nused by construction and preview creation.", "Base game"),
         new("BulkBuild", "Faster bulk component creation", "Uses verified warmed ComponentSpecs.\nKeeps normal component ordering and hooks.", "Base game"),
+        new("SoilReset", "Soil contamination reset", "Optimizes contamination cleanup work.\nDoes not throttle soil simulation ticks.", "Base game"),
+        new("BFR", "BFR local navigation batching", "Groups sparse terrain changes in 8x8 areas.\nAvoids unnecessary large-area scans.", "Other mods"),
+        new("EBR", "EBR spatial navigation updates", "Filters unaffected builders by terrain bounds.\nDefers large notification batches safely.", "Other mods"),
         new("FaunaBudget", "Keystone fauna spawn budget", "Limits expensive actual spawns to one\nper update without dropping queued spawns.", "Other mods"),
         new("FaunaCache", "Keystone fauna recipe cache", "Avoids repeated recipe searches\nwhen spawning fauna.", "Other mods"),
         new("FaunaPrewarm", "Keystone fauna prewarming", "Prewarms Cow, Bull and Deer templates\nafter game loading.", "Other mods"),
-        new("SoilReset", "Soil contamination reset", "Optimizes contamination cleanup work.\nDoes not throttle soil simulation ticks.", "Base game"),
         new("SuperCursor", "SuperCursor update smoothing", "Reduces frequent informational refreshes.\nDoes not delay player tool actions.", "Other mods"),
         new("PhysicsCatchup", "TimberPhysics catch-up limiter", "Limits expensive accumulated physics substeps.\nMay drop excess catch-up under overload.", "Other mods"),
         new("PhysicsCollider", "TimberPhysics collider merging", "Combines terrain colliders in 32x32 chunks.\nUpdates changed chunks in batches.", "Other mods"),
