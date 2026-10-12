@@ -25,6 +25,9 @@ public sealed class ModStarter : IModStarter
         if (OptimizationToggles.Enabled("FaunaPrewarm")) KeystoneFaunaTemplatePrewarmer.Patch(harmony);
         if (OptimizationToggles.Enabled("SoilReset")) SoilContaminationResetOptimizer.Patch(harmony);
         if (OptimizationToggles.Enabled("SuperCursor")) SuperCursorRefreshSmoother.Patch(harmony);
+        // SWC scanning must never run without its workplace/harvest safety guard.
+        if (OptimizationToggles.Enabled("SWC") && SWCHarvestSafety.Install(harmony))
+            SWCScanOptimizer.Install(harmony);
         if (OptimizationToggles.Enabled("PhysicsCatchup")) TimberPhysicsCatchUpLimiterPatcher.Patch(harmony);
         if (OptimizationToggles.Enabled("PhysicsCollider")) TimberPhysicsTerrainColliderMergerPatcher.Patch(harmony);
         if (OptimizationToggles.Enabled("GcSmoother")) IncrementalGcSmoother.Initialize();
