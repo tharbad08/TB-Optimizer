@@ -43,7 +43,8 @@ public sealed class OptimizerSettingsOwner(
 public sealed class TBOptimizerUiSetting()
     : NonPersistentSetting(ModSettingDescriptor.Create("TB Optimizer"))
 {
-    public override void Reset() { }
+    // Native Mod Settings calls this from its Reset to Default button.
+    public override void Reset() => OptimizationToggles.ResetToDefaults();
 }
 
 /// <summary>
