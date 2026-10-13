@@ -61,7 +61,7 @@ internal static class BlueprintSpecInstantiationCache
         {
             var info = Harmony.GetPatchInfo(candidate);
             if (info is not null &&
-                info.Owners.Any(owner => !owner.StartsWith("tharbad08.BenchmarkAndOptimizerV11",
+                info.Owners.Any(owner => !owner.StartsWith("tharbad08.TBOptimizer",
                     StringComparison.Ordinal)))
             {
                 Runtime.Log("blueprint spec lookup cache disabled: external lookup/instantiation patch");
