@@ -1,6 +1,7 @@
 using System;
 using Bindito.Core;
 using ModSettings.Core;
+using ModSettings.Common;
 using Timberborn.Modding;
 using Timberborn.SettingsSystem;
 
@@ -39,7 +40,12 @@ public sealed class OptimizerSettingsOwner(
         foreach (var option in OptimizationToggles.Options)
         {
             if (!string.Equals(currentGroup, option.Group, StringComparison.Ordinal))
+            {
                 currentGroup = option.Group;
+                AddNonPersistentModSetting(new ReadonlyTextModSetting(
+                    ModSettingDescriptor.Create(currentGroup),
+                    new ReadonlyTextModSetting.TextSettings()));
+            }
 
             // Native BoolModSettingElementFactory owns the toggle layout,
             // binding and disabled appearance. Cache presence for this panel:
@@ -65,7 +71,7 @@ internal sealed class OptimizerBoolSetting : ModSetting<bool>
 
     internal OptimizerBoolSetting(OptimizationToggles.Entry option, bool available)
         : base(option.DefaultEnabled,
-            ModSettingDescriptor.Create(option.Group + " | " + option.Label)
+            ModSettingDescriptor.Create(option.Label)
                 .SetTooltip(option.Description.Replace("\n", " "))
                 .SetEnableCondition(() => available))
     {
