@@ -60,3 +60,18 @@ assert 'protected abstract string ModId' in core_stub, "Core stub must match fra
 assert 'public override string ModId' not in settings, "Prevent widened access declaration"
 
 print("Native Mod Settings static regression checks passed.")
+
+# Timberborn.Fields.dll 1.1.2.7: HarvestStarter.FindYielder has three
+# arguments, not zero; the method body must retain the unique workplace
+# guard insertion pattern before any Harmony patch is installed.
+safety = (root / "Optimizations/Mods/SWC/SWCHarvestSafety.cs").read_text(encoding="utf-8")
+assert 'DeclaredMethod(harvester, "FindYielder", Type.EmptyTypes)' not in safety, (
+    "Timberborn 1.1.2.7 FindYielder signature is three parameters")
+assert 'arguments.Length == 3' in safety
+assert 'arguments[2].ParameterType == typeof(string)' in safety
+assert 'arguments[0].Name == "receivingInventory"' in safety
+assert 'arguments[1].Name == "inRangeYielders"' in safety
+assert 'arguments[2].Name == "prioritizedName"' in safety
+assert 'InjectionPoint(original, worker, workplace) < 0' in safety, (
+    "Never enable SWC safety without verifying the original method IL")
+assert 'original.Any(i => i.blocks.Count != 0)' in safety

@@ -87,3 +87,41 @@ Verified other native settings calls, `IModStarter.StartMod`,
 confirmed mismatches. Additional DLLs are needed to verify
 optional-mod hook internals and TimberUi (not in the supplied archive).
 Details: [API-COMPATIBILITY-2026-10-14.md](API-COMPATIBILITY-2026-10-14.md).
+
+
+### Full installed-mod DLL audit — v1.1.119
+
+The `timberborn-build-refs-20261014-013425.zip` archive contains
+1118 DLLs: 502 game, 603 Workshop and 13 local. The active compatibility
+references for Extended Builder Reach v11, SWC v1.1.38,
+BFR v2.2.1, Keystone v1.3.3, Super Cursor v10.0.6,
+Bober's Laws of Motion v1.1.1.0 and TimberUi v11.0.1 were identified
+from their exact version directories and manifests, not older versions in
+the same Workshop download folders.
+
+**Confirmed additional mismatch:** Timberborn 1.1's
+`HarvestStarter.FindYielder` takes three arguments
+(`receivingInventory`, `inRangeYielders`, `prioritizedName`)
+and returns `YielderSearchResult`. Our SWC harvest/workplace guard had
+been asking for an impossible parameterless version; thus the SWC guard,
+four-tick stagger and allocation scan could not activate even when the
+installed SWC had matching components.
+
+v1.1.119 selects only the exact three-argument method shape. Its existing
+safety criteria remain mandatory: no exception blocks and exactly one
+workplace-check insertion point in the original IL. The supplied
+`Timberborn.Fields.dll` method body was additionally inspected: it has
+one instance of the expected `GetYielders / pop / ldarg.0 /
+_worker / Worker.Workplace` sequence. Unsupported future game builds
+still disable the safety guard and thereby the SWC scan optimizations
+instead of risking a broken worker or altered reservations.
+
+**Other integrations:** EBR v11's `UpdateAccesses` / registry / nav update
+members, BFR's `ProcessLocalizedChange`, Keystone's fauna drainer,
+SuperCursor's `ProcessInfo`, and Bober's Laws' physics/collider
+entry points all exist under the probed names and layouts.
+This metadata audit verifies presence and nominal shapes, not gameplay
+correctness or the success of every Harmony patch; test in game before
+merging. The SWC allocation fast-path currently probes
+`RefreshGoods` and `FindEmptySpot`, which are absent from installed
+SWC v1.1.38, so it correctly skips those optional replacement hooks.
