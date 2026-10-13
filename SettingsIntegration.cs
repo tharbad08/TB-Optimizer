@@ -1,32 +1,27 @@
+using System;
 using Bindito.Core;
-using ModSettings.CommonUI;
+using ModSettings.Common;
 using ModSettings.Core;
-using ModSettings.CoreUI;
-using Timberborn.CoreUI;
 using Timberborn.Modding;
-using Timberborn.Options;
-using Timberborn.OptionsGame;
 using Timberborn.SettingsSystem;
-using Timberborn.SingletonSystem;
-using TimberUi.CommonUi;
-using UnityEngine.UIElements;
 
 namespace BenchmarkAndOptimizerV11;
 
+// Use the existing Mod Settings mod UI. Its built-in setting factories provide
+// the game's native rows, toggles, tooltips, disabled states and Reset button.
+// No Unity UI Toolkit IStyle setters or custom VisualElement factories needed.
 [Context("MainMenu")]
 public sealed class MainMenuConfig : Configurator
 {
     public override void Configure() =>
-        this.BindSingleton<OptimizerSettingsOwner>()
-            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>();
+        this.BindSingleton<OptimizerSettingsOwner>();
 }
 
 [Context("Game")]
 public sealed class GameConfig : Configurator
 {
     public override void Configure() =>
-        this.BindSingleton<OptimizerSettingsOwner>()
-            .MultiBindSingleton<IModSettingElementFactory, OptimizerSettingElementFactory>();
+        this.BindSingleton<OptimizerSettingsOwner>();
 }
 
 public sealed class OptimizerSettingsOwner(
@@ -37,103 +32,63 @@ public sealed class OptimizerSettingsOwner(
 {
     public override string ModId => "TBOptimizer";
     public override ModSettingsContext ChangeableOn => ModSettingsContext.All;
-    public TBOptimizerUiSetting Optimizations { get; } = new();
-}
 
-public sealed class TBOptimizerUiSetting()
-    : NonPersistentSetting(ModSettingDescriptor.Create("TB Optimizer"))
-{
-    // Native Mod Settings calls this from its Reset to Default button.
-    public override void Reset() => OptimizationToggles.ResetToDefaults();
-}
-
-/// <summary>
-/// Uses the native Mod Settings window (590px default) and its existing outer
-/// ScrollView. Do not set ModSettingsBox width globally: other mods, including
-/// TimberCommons, share the same singleton settings window.
-/// </summary>
-public sealed class TBOptimizerPanel : VisualElement
-{
-    public TBOptimizerPanel()
+    protected override void OnBeforeLoad()
     {
-        this.SetPadding(10f);
-        this.AddGameLabel("TB Optimizer", bold: true, centered: true)
-            .SetMarginBottom(4f);
-        this.AddGameLabel("Changes apply after restarting Timberborn.", centered: true)
-            .SetMarginBottom(10f);
-
-        // ModSettingsBox already hosts its content inside a vertical ScrollView.
-        // An inner ScrollView causes double-scroll areas and clipped explanations.
-        var list = this.AddChild();
-        list.SetWidthPercent(100f);
-
         string? currentGroup = null;
-        foreach (var item in OptimizationToggles.Options)
+
+        foreach (var option in OptimizationToggles.Options)
         {
-            if (currentGroup != item.Group)
+            if (!string.Equals(currentGroup, option.Group, StringComparison.Ordinal))
             {
-                currentGroup = item.Group;
-                list.AddGameLabel(currentGroup, bold: true, centered: true)
-                    .SetMargin(17f, 0f, 12f, 0f);
+                currentGroup = option.Group;
+                // The native ReadonlyTextModSetting factory renders the
+                // section heading without custom Unity UI code.
+                AddNonPersistentModSetting(new ReadonlyTextModSetting(
+                    ModSettingDescriptor.Create(currentGroup),
+                    new ReadonlyTextModSetting.TextSettings()));
             }
 
-            var setting = list.AddChild().SetMarginBottom(9f);
-            setting.SetWidthPercent(100f);
+            // Native BoolModSettingElementFactory owns the toggle layout,
+            // binding and disabled appearance. Cache presence for this panel:
+            // mod activation already requires a game restart.
+            var available = ModAvailability.IsAvailable(option.Key);
+            var native = new OptimizerBoolSetting(option, available);
+            native.ValueChanged += (_, enabled) =>
+                OptimizationToggles.Set(option.Key, enabled);
+            AddCustomModSetting(native, option.Key);
 
-            // Match Mod Settings' native two-column rows, with a left label
-            // and a right-aligned checkbox, rather than packing both together.
-            var header = setting.AddRow();
-            header.AddToClassList("mod-setting__wrapper");
-            header.SetWidthPercent(100f);
+            // JSON is the established source of preferences. Synchronize any
+            // old native ISettings value with that source during migration.
+            native.SetValue(OptimizationToggles.Enabled(option.Key));
 
-            var caption = header.AddGameLabel(item.Label);
-            caption.SetFlexGrow(1f);
-            caption.style.whiteSpace = WhiteSpace.Normal;
-
-            var key = item.Key;
-            var toggle = header.AddToggle(
-                "", onValueChanged: value => OptimizationToggles.Set(key, value));
-            toggle.SetMarginRight(12f);
-            toggle.SetValueWithoutNotify(
-                ModAvailability.IsAvailable(key) && OptimizationToggles.Enabled(key));
-
-            var available = ModAvailability.IsAvailable(key);
-            toggle.SetEnabled(available);
-
-            // Short explanations were a deliberate design requirement: retain
-            // them under the setting, but visually de-emphasize secondary text.
-            var explanation = setting.AddGameLabel(item.Description);
-            explanation.SetMargin(0f, 25f, 2f, 0f);
-            explanation.style.whiteSpace = WhiteSpace.Normal;
-            explanation.style.opacity = 0.78f;
-
-            if (key == "GcSmoother")
-            {
-                var status = setting.AddGameLabel(IncrementalGcSmoother.StatusDescription);
-                status.SetMargin(0f, 25f, 2f, 0f);
-                status.style.whiteSpace = WhiteSpace.Normal;
-            }
-            else if (!available)
-            {
-                var status = setting.AddGameLabel("Mod not loaded — setting unavailable.");
-                status.SetMargin(0f, 25f, 2f, 0f);
-                status.style.whiteSpace = WhiteSpace.Normal;
-            }
+            // Keep the original 1-2 line descriptions using the framework's
+            // read-only text setting instead of styling game labels ourselves.
+            AddNonPersistentModSetting(new ReadonlyTextModSetting(
+                ModSettingDescriptor.Create(option.Description),
+                new ReadonlyTextModSetting.TextSettings()));
         }
     }
 }
 
-public sealed class OptimizerSettingElementFactory : IModSettingElementFactory
+internal sealed class OptimizerBoolSetting : ModSetting<bool>
 {
-    public int Priority { get; }
-    public bool TryCreateElement(ModSetting setting, out IModSettingElement? element)
+    private readonly string _key;
+
+    internal OptimizerBoolSetting(OptimizationToggles.Entry option, bool available)
+        : base(option.DefaultEnabled,
+            ModSettingDescriptor.Create(option.Label)
+                .SetTooltip(option.Description.Replace("\n", " "))
+                .SetEnableCondition(() => available))
     {
-        if (setting is TBOptimizerUiSetting)
-        {
-            element = new ModSettingElement(new TBOptimizerPanel(), setting);
-            return true;
-        }
-        element = null;
-        return false;
+        _key = option.Key;
+    }
+
+    public override void Reset()
+    {
+        // Reset JSON overrides even when the native value was already equal
+        // to the default. ModSettingsOwner invokes this on Reset to Default.
+        OptimizationToggles.Set(_key, DefaultValue);
+        base.Reset();
     }
 }
