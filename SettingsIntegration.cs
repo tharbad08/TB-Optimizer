@@ -54,13 +54,14 @@ public sealed class OptimizerSettingsOwner(
             // mod activation already requires a game restart.
             var available = ModAvailability.IsAvailable(option.Key);
             var native = new OptimizerBoolSetting(option, available);
-            native.ValueChanged += (_, enabled) =>
-                OptimizationToggles.Set(option.Key, enabled);
             AddCustomModSetting(native, option.Key);
 
-            // JSON is the established source of preferences. Synchronize any
-            // old native ISettings value with that source during migration.
+            // Prefer existing JSON settings during migration. Native ISettings
+            // receives this value before we register the JSON change callback,
+            // so initialization cannot accidentally overwrite user opt-outs.
             native.SetValue(OptimizationToggles.Enabled(option.Key));
+            native.ValueChanged += (_, enabled) =>
+                OptimizationToggles.Set(option.Key, enabled);
 
             // Keep the original 1-2 line descriptions using the framework's
             // read-only text setting instead of styling game labels ourselves.
