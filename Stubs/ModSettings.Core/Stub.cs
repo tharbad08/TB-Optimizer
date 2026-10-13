@@ -24,12 +24,12 @@ namespace ModSettings.Core
     public virtual void SetValue(T value){Value=value;ValueChanged?.Invoke(this,value);}
     public override void Reset()=>SetValue(DefaultValue);
  }
- public abstract class NonPersistentSetting : ModSetting { protected NonPersistentSetting(ModSettingDescriptor descriptor):base(descriptor){} }
+ public abstract class NonPersistentSetting : ModSetting { protected NonPersistentSetting(ModSettingDescriptor descriptor):base(descriptor){} public override void Reset(){} }
  public sealed class ModSettingsOwnerRegistry { }
  public abstract class ModSettingsOwner
  {
     protected ModSettingsOwner(ISettings settings,ModSettingsOwnerRegistry registry,ModRepository repository){}
-    public abstract string ModId {get;}
+    protected abstract string ModId {get;}
     public virtual ModSettingsContext ChangeableOn=>ModSettingsContext.MainMenu;
     protected virtual void OnBeforeLoad(){}
     public void AddNonPersistentModSetting(NonPersistentSetting setting){}

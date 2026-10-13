@@ -47,3 +47,19 @@ logic was changed, and installed EBR patch integration is retained.
 
 This is a *compile/static check*, not an in-game validation. Test both main
 menu and game settings, then verify optional-mod enable/disable status.
+
+
+### Native Mod Settings API declaration audit — v1.1.117
+
+Checked directly against the Mod Settings maintainer's published sources in
+`eMkaQQ/timberborn-modding`: `ModSettingsOwner.ModId` (protected abstract,
+corrected in stub and override), `ChangeableOn`, `OnBeforeLoad`,
+`AddCustomModSetting`, `AddNonPersistentModSetting`, `ModSetting<T>`
+constructor, `DefaultValue`, `SetValue`, `ValueChanged`,
+`ModSettingDescriptor.Create/SetTooltip/SetEnableCondition`,
+`NonPersistentSetting.Reset` and the three-argument `TextSettings`
+constructor. No further direct native settings API mismatch was found in these
+symbols. The remaining game-API and optional-mod Harmony targets are discovered
+through reflection with signature checks and fail-closed behavior; they still
+require the real Timberborn and optional-mod DLLs for definitive signature
+validation. The earlier v1.1.116 `EnabledMods` return-type crash fix remains.

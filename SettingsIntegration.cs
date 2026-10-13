@@ -30,7 +30,7 @@ public sealed class OptimizerSettingsOwner(
     ModRepository repository
 ) : ModSettingsOwner(settings, registry, repository)
 {
-    public override string ModId => "TBOptimizer";
+    protected override string ModId => "TBOptimizer";
     public override ModSettingsContext ChangeableOn => ModSettingsContext.All;
 
     private readonly ModRepository _repository = repository;

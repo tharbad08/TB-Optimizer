@@ -37,4 +37,9 @@ assert "style.opacity" not in settings
 assert "float opacity" not in stub, "Do not reintroduce invalid Unity IStyle.set_opacity(float) stub"
 assert "OptimizerSettingElementFactory" not in settings, "Use framework-native checkbox UI"
 assert "ModSettingsBox()" not in settings, "Never resize global Mod Settings window"
+core_stub = (root / "Stubs/ModSettings.Core/Stub.cs").read_text(encoding="utf-8")
+assert 'protected override string ModId' in settings, "ModSettingsOwner.ModId is protected in eMka implementation"
+assert 'protected abstract string ModId' in core_stub, "Core stub must match framework protected ModId"
+assert 'public override string ModId' not in settings, "Prevent widened access declaration"
+
 print("Native Mod Settings static regression checks passed.")
