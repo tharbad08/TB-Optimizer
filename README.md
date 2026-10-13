@@ -25,3 +25,7 @@ The GC setting can be enabled in the main menu even if Unity currently reports i
 ### Optional mod detection
 
 **Every third-party patch is gated by loaded-mod class detection AND the user's enabled preference.** Missing optional mods skip all associated Harmony hooks (including any base-game methods they would otherwise intercept). See [MOD-DETECTION.md](MOD-DETECTION.md) for the complete mod/key matrix, startup order, greyed-out settings, compatibility checks and limitations. Loaded classes are not definitive proof that the game's mod manager enabled the mod.
+
+### Reset to Default
+
+The game's **Reset to Default** button clears TB Optimizer's explicit checkbox overrides in `tb-optimizer-options.json`. The panel reopens showing defaults. Existing per-feature default-on behavior is restored, but installed Harmony patches still change only after restarting Timberborn.
