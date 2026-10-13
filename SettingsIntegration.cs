@@ -33,6 +33,8 @@ public sealed class OptimizerSettingsOwner(
     public override string ModId => "TBOptimizer";
     public override ModSettingsContext ChangeableOn => ModSettingsContext.All;
 
+    private readonly ModRepository _repository = repository;
+
     protected override void OnBeforeLoad()
     {
         string? currentGroup = null;
@@ -50,7 +52,7 @@ public sealed class OptimizerSettingsOwner(
             // Native BoolModSettingElementFactory owns the toggle layout,
             // binding and disabled appearance. Cache presence for this panel:
             // mod activation already requires a game restart.
-            var available = ModAvailability.IsAvailable(option.Key);
+            var available = ModAvailability.IsAvailableInSettings(option.Key, _repository);
             var native = new OptimizerBoolSetting(option, available);
             AddCustomModSetting(native, option.Key);
 
