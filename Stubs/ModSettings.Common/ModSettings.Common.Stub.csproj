@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>ModSettings.Common</AssemblyName>
+    <RootNamespace>ModSettings.Common</RootNamespace>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ModSettings.Core/ModSettings.Core.Stub.csproj" Private="false"/>
+  </ItemGroup>
+</Project>
