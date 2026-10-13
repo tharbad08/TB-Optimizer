@@ -52,6 +52,21 @@ internal static class OptimizationToggles
     internal static bool Enabled(string key) => Values.TryGetValue(key, out var value) ? value :
         Array.Find(Options, item => item.Key == key)?.DefaultEnabled ?? false;
     internal static bool Configured(string key) => Values.ContainsKey(key);
+    /// <summary>
+    /// The native Mod Settings Reset button calls this through
+    /// TBOptimizerUiSetting.Reset(). Clearing overrides restores the declared
+    /// defaults while keeping the JSON-backed settings and startup semantics.
+    /// </summary>
+    internal static void ResetToDefaults()
+    {
+        Values.Clear();
+        try
+        {
+            if (_path.Length > 0) File.WriteAllText(_path, "{}");
+        }
+        catch { /* Keep the settings panel responsive if storage is read-only. */ }
+    }
+
     internal static void Set(string key, bool value)
     {
         Values[key] = value;
