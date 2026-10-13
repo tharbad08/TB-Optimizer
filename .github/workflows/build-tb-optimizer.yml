@@ -44,6 +44,6 @@ jobs:
       - name: Upload ready-to-install package
         uses: actions/upload-artifact@v4
         with:
-          name: TBOptimizer_1.1.112
+          name: TBOptimizer_1.1.113
           path: ${{ runner.temp }}/timberborn-artifact/
           if-no-files-found: error
