@@ -1,27 +1,31 @@
 using System;
 using Bindito.Core;
+using ModSettings.CommonUI;
 using ModSettings.Core;
-using ModSettings.Common;
+using ModSettings.CoreUI;
 using Timberborn.Modding;
 using Timberborn.SettingsSystem;
+using TimberUi.CommonUi;
+using UnityEngine.UIElements;
 
 namespace BenchmarkAndOptimizerV11;
 
-// Use the existing Mod Settings mod UI. Its built-in setting factories provide
-// the game's native rows, toggles, tooltips, disabled states and Reset button.
-// No Unity UI Toolkit IStyle setters or custom VisualElement factories needed.
+// Keep native Mod Settings rows, tooltips, toggles, disabled states and Reset.
+// Only the two noninteractive group headings need a full-width UI element.
 [Context("MainMenu")]
 public sealed class MainMenuConfig : Configurator
 {
     public override void Configure() =>
-        this.BindSingleton<OptimizerSettingsOwner>();
+        this.BindSingleton<OptimizerSettingsOwner>()
+            .MultiBindSingleton<IModSettingElementFactory, OptimizerGroupHeaderFactory>();
 }
 
 [Context("Game")]
 public sealed class GameConfig : Configurator
 {
     public override void Configure() =>
-        this.BindSingleton<OptimizerSettingsOwner>();
+        this.BindSingleton<OptimizerSettingsOwner>()
+            .MultiBindSingleton<IModSettingElementFactory, OptimizerGroupHeaderFactory>();
 }
 
 public sealed class OptimizerSettingsOwner(
@@ -44,38 +48,62 @@ public sealed class OptimizerSettingsOwner(
             if (!string.Equals(currentGroup, option.Group, StringComparison.Ordinal))
             {
                 currentGroup = option.Group;
-                // Mod Settings v1.1 defines TextSettings(TextAnchor, int, Vector4)
-                // with optional source arguments, NOT a parameterless CLR ctor.
-                // Discover its runtime constructor instead of relying on a stub ABI.
-                try
-                {
-                    AddNonPersistentModSetting(new ReadonlyTextModSetting(
-                        ModSettingDescriptor.Create(currentGroup),
-                        NativeTextHeaderSettings.Create()));
-                }
-                catch (Exception ex)
-                {
-                    // A future Mod Settings change should remove the heading,
-                    // never prevent the entire Timberborn main menu from loading.
-                    Console.WriteLine("[TBOptimizer] Native section header skipped: " + ex);
-                }
+                AddNonPersistentModSetting(new OptimizerGroupHeader(currentGroup));
             }
 
-            // Native BoolModSettingElementFactory owns the toggle layout,
-            // binding and disabled appearance. Cache presence for this panel:
-            // mod activation already requires a game restart.
+            // Let the framework's BoolModSettingElementFactory render settings.
+            // Presence is evaluated each time the settings owner loads, while
+            // activation and saved preferences still require a game restart.
             var available = ModAvailability.IsAvailableInSettings(option.Key, _repository);
             var native = new OptimizerBoolSetting(option, available);
             AddCustomModSetting(native, option.Key);
 
-            // Prefer existing JSON settings during migration. Native ISettings
-            // receives this value before we register the JSON change callback,
-            // so initialization cannot accidentally overwrite user opt-outs.
+            // The JSON settings remain the authoritative startup preferences.
             native.SetValue(OptimizationToggles.Enabled(option.Key));
             native.ValueChanged += (_, enabled) =>
                 OptimizationToggles.Set(option.Key, enabled);
-
         }
+    }
+}
+
+// Native ReadonlyTextModSetting uses a compact settings descriptor row that
+// does not fill the panel; centering its text centers only that narrow row.
+// A dedicated, nonpersistent section element fills the native panel width.
+// It does not replace the framework's interactive setting components.
+internal sealed class OptimizerGroupHeader : NonPersistentSetting
+{
+    internal string Text { get; }
+
+    internal OptimizerGroupHeader(string text)
+        : base(ModSettingDescriptor.Create(text)) => Text = text;
+}
+
+public sealed class OptimizerGroupHeaderFactory : IModSettingElementFactory
+{
+    // Higher than built-in factories (priority 0), and only handles our type.
+    public int Priority => 20;
+
+    public bool TryCreateElement(ModSetting setting, out IModSettingElement? element)
+    {
+        if (setting is not OptimizerGroupHeader heading)
+        {
+            element = null;
+            return false;
+        }
+
+        var root = new VisualElement();
+        root.SetWidthPercent(100f);
+        root.SetMargin(18f, 0f, 12f, 0f);
+
+        // TimberUi's built-in large, bold, centered game text keeps the
+        // correct font/theme without using unverified Unity IStyle setters.
+        var title = root.AddGameLabel(
+            heading.Text, size: UiBuilder.GameLabelSize.Big,
+            bold: true, centered: true);
+        title.SetWidthPercent(100f);
+
+        element = new ModSettingElement(root, setting);
+        return true;
     }
 }
 
@@ -94,49 +122,8 @@ internal sealed class OptimizerBoolSetting : ModSetting<bool>
 
     public override void Reset()
     {
-        // Reset JSON overrides even when the native value was already equal
-        // to the default. ModSettingsOwner invokes this on Reset to Default.
+        // Reset JSON overrides even if the native value is already default.
         OptimizationToggles.Set(_key, DefaultValue);
         base.Reset();
-    }
-}
-
-
-// The real eMka ModSettings.Common.TextSettings ctor requires parameters even
-// though its C# definition gives those parameters default values. The old
-// stub exposed an imaginary .ctor(), causing MissingMethodException on start.
-// Reflection is done only once per group header, never in gameplay hot paths.
-internal static class NativeTextHeaderSettings
-{
-    internal static ReadonlyTextModSetting.TextSettings Create()
-    {
-        var textSettingsType = typeof(ReadonlyTextModSetting.TextSettings);
-        var constructor = Array.Find(
-            textSettingsType.GetConstructors(),
-            item => item.GetParameters().Length == 3);
-        if (constructor is null)
-            throw new MissingMethodException(
-                textSettingsType.FullName,
-                ".ctor(TextAnchor, int, Vector4)");
-
-        var parameters = constructor.GetParameters();
-        var arguments = new object?[parameters.Length];
-        for (var i = 0; i < parameters.Length; i++)
-        {
-            var parameter = parameters[i];
-            var type = parameter.ParameterType;
-            if (type.IsEnum && parameter.Name == "textAlignment")
-                arguments[i] = Enum.Parse(type, "MiddleCenter");
-            else if (type == typeof(int) && parameter.Name == "fontSize")
-                arguments[i] = 16;
-            else if (parameter.HasDefaultValue &&
-                     parameter.DefaultValue != DBNull.Value &&
-                     parameter.DefaultValue != System.Reflection.Missing.Value)
-                arguments[i] = parameter.DefaultValue;
-            else
-                arguments[i] = type.IsValueType ? Activator.CreateInstance(type) : null;
-        }
-
-        return (ReadonlyTextModSetting.TextSettings)constructor.Invoke(arguments);
     }
 }
