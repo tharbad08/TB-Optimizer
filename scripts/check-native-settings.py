@@ -8,18 +8,21 @@ stub = (root / "Stubs/UnityEngine.UIElementsModule/Stub.cs").read_text(encoding=
 project = (root / "BenchmarkAndOptimizerV11Port.csproj").read_text(encoding="utf-8")
 modcheck = (root / "ModAvailability.cs").read_text(encoding="utf-8")
 
-assert "ReadonlyTextModSetting" in settings, "Missing native settings section headers"
-header_stub = (root / "Stubs/ModSettings.Common/Stub.cs").read_text(encoding="utf-8")
-assert "NativeTextHeaderSettings.Create()" in settings, "Headers must invoke verified runtime constructor"
-assert "new ReadonlyTextModSetting.TextSettings()" not in settings, "Parameterless TextSettings caused 1.1.114 startup crash"
-assert "private TextSettings()" in header_stub, "Compile stub must reject imaginary public ctor"
-assert "public TextSettings()" not in header_stub, "Do not reintroduce invalid parameterless ABI"
-assert "GetParameters().Length == 3" in settings, "eMka Mod Settings runtime constructor takes three arguments"
-assert "catch (Exception ex)" in settings, "Future incompatible headers must not crash game boot"
-
-assert "ModSettingDescriptor.Create(currentGroup)" in settings, "Group headings not separate"
+# Section headers must use a full-width native-themed visual element.
+# The built-in readonly descriptor only centers within a narrow label cell.
+assert "OptimizerGroupHeader : NonPersistentSetting" in settings
+assert "OptimizerGroupHeaderFactory : IModSettingElementFactory" in settings
+assert "AddNonPersistentModSetting(new OptimizerGroupHeader(currentGroup))" in settings
+assert "root.SetWidthPercent(100f)" in settings
+assert "title.SetWidthPercent(100f)" in settings
+assert "UiBuilder.GameLabelSize.Big" in settings
+assert "bold: true, centered: true" in settings
+assert "new ModSettingElement(root, setting)" in settings
+assert "if (setting is not OptimizerGroupHeader heading)" in settings
+assert "ReadonlyTextModSetting" not in settings or "Native ReadonlyTextModSetting uses" in settings
 assert 'Create(option.Label)' in settings, "Option labels must not repeat group prefix"
-assert "ModSettings.Common/ModSettings.Common.Stub.csproj" in project
+assert "AddCustomModSetting(native, option.Key)" in settings, "Keep native bool controls"
+assert "OptimizerSettingElementFactory" not in settings, "No custom checkbox renderer"
 assert "ModAvailability.IsAvailableInSettings(option.Key, _repository)" in settings
 # v1.1.115: a direct property call compiled with a fake IReadOnlyList return
 # type, then threw MissingMethodException against Timberborn 1.1.
