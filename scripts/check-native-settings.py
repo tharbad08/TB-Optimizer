@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard native Mod Settings integration against the v1.1.112 UI and v1.1.114 TextSettings startup crashes."""
+"""Guard native Mod Settings integration against the v1.1.112 UI and v1.1.114 TextSettings and v1.1.115 EnabledMods startup crashes."""
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -21,7 +21,18 @@ assert "ModSettingDescriptor.Create(currentGroup)" in settings, "Group headings 
 assert 'Create(option.Label)' in settings, "Option labels must not repeat group prefix"
 assert "ModSettings.Common/ModSettings.Common.Stub.csproj" in project
 assert "ModAvailability.IsAvailableInSettings(option.Key, _repository)" in settings
-assert "repository.EnabledMods" in modcheck
+# v1.1.115: a direct property call compiled with a fake IReadOnlyList return
+# type, then threw MissingMethodException against Timberborn 1.1.
+# A tiny compile stub must not authorize such calls again.
+mod_stub = (root / "Stubs/Timberborn.Modding/Stub.cs").read_text(encoding="utf-8")
+assert 'ReadRuntimeMember(repository, "EnabledMods")' in modcheck, "Use real runtime property metadata"
+assert "repository.EnabledMods" not in modcheck, "Direct binding to fake stub causes startup crash"
+assert "enabled is not IEnumerable" in modcheck, "Runtime registry must be enumerated independent of CLR return type"
+assert 'ReadRuntimeMember(mod, "Manifest")' in modcheck
+assert 'ReadRuntimeMember(manifest, "Id")' in modcheck
+assert "catch (Exception)" in modcheck, "Uninitialized registry must fail closed"
+assert "[System.Obsolete(" in mod_stub and "true)]" in mod_stub, "Stub must disallow direct EnabledMods calls"
+
 assert "style.opacity" not in settings
 assert "float opacity" not in stub, "Do not reintroduce invalid Unity IStyle.set_opacity(float) stub"
 assert "OptimizerSettingElementFactory" not in settings, "Use framework-native checkbox UI"

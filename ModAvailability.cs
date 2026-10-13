@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Linq;
+using System.Collections;
 using Timberborn.Modding;
 
 namespace BenchmarkAndOptimizerV11;
@@ -69,14 +69,56 @@ internal static class ModAvailability
         if (!IsAvailable(key)) return false;
         if (BaseGameKeys.Contains(key)) return true;
         if (!RequiredModIds.TryGetValue(key, out var requiredId)) return false;
+        return IsEnabledModId(repository, requiredId);
+    }
+
+    /// <summary>
+    /// Inspect the *actual* enabled-mod registry without binding to the
+    /// property's compile-time return type. Timberborn 1.1 exposes
+    /// ModRepository.EnabledMods with a different CLR signature than the
+    /// IReadOnlyList<Mod> declared by our older compile-only stub.
+    /// A direct call caused MissingMethodException during main menu startup
+    /// in TB Optimizer v1.1.115.
+    ///
+    /// Called only while constructing Mod Settings, never in hot paths.
+    /// If the registry is missing, not yet initialized (including a default
+    /// ImmutableArray), or changes incompatibly, fail CLOSED. Loading an
+    /// optional assembly on disk is not proof that it is enabled.
+    /// </summary>
+    private static bool IsEnabledModId(ModRepository repository, string requiredId)
+    {
         try
         {
-            return repository.EnabledMods.Any(mod => mod.Manifest.Id == requiredId);
+            var enabled = ReadRuntimeMember(repository, "EnabledMods");
+            if (enabled is not IEnumerable mods) return false;
+
+            foreach (var mod in mods)
+            {
+                if (mod is null) continue;
+                var manifest = ReadRuntimeMember(mod, "Manifest");
+                if (manifest is null) continue;
+                if (ReadRuntimeMember(manifest, "Id") is string id &&
+                    string.Equals(id, requiredId, StringComparison.Ordinal))
+                    return true;
+            }
         }
-        catch
+        catch (Exception)
         {
-            return false;
+            // Example: enumerating an uninitialized ImmutableArray<T>.
+            // Never allow a settings-related version mismatch to crash boot.
         }
+        return false;
+    }
+
+    private static object? ReadRuntimeMember(object instance, string name)
+    {
+        const BindingFlags flags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        var type = instance.GetType();
+        var property = type.GetProperty(name, flags);
+        if (property is not null && property.GetIndexParameters().Length == 0)
+            return property.GetValue(instance);
+        return type.GetField(name, flags)?.GetValue(instance);
     }
 
     private static readonly HashSet<string> BaseGameKeys = new(StringComparer.Ordinal)

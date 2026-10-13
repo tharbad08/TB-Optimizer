@@ -29,3 +29,21 @@ The GC setting can be enabled in the main menu even if Unity currently reports i
 ### Reset to Default
 
 The game's **Reset to Default** button clears TB Optimizer's explicit checkbox overrides in `tb-optimizer-options.json`. The panel reopens showing defaults. Existing per-feature default-on behavior is restored, but installed Harmony patches still change only after restarting Timberborn.
+
+
+### Timberborn 1.1 API compatibility — v1.1.116
+
+A previous test build (v1.1.115) failed to open the main menu on game 1.1.2.7
+with `MissingMethodException` for
+`ModRepository.get_EnabledMods(): IReadOnlyList<Mod>`. The compiled
+`Timberborn.Modding` stub specified a return type not guaranteed by the
+actual 1.1 runtime. The settings panel now obtains the enabled-mod collection
+by runtime reflection (property name only), safely enumerates it, and reads the
+enabled IDs without statically linking to stub property return types. If the
+registry is missing or uninitialized, optional optimization checkboxes are
+disabled instead of crashing. The compile stub makes direct property calls
+an error; CI also checks for this regression. No gameplay or patch startup
+logic was changed, and installed EBR patch integration is retained.
+
+This is a *compile/static check*, not an in-game validation. Test both main
+menu and game settings, then verify optional-mod enable/disable status.
