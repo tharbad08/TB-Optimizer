@@ -493,7 +493,7 @@ internal static class ExtendedBuilderReachNavOptimizer
         {
             DeferredBatches.Enqueue(
                 new PendingBatch(__0, deferredCandidates, deferredCount, total, scanned, usedSpatial));
-            deferredCandidates += deferredCount;
+            // The rented array is already queued; do not mutate it as a counter.
 
             if (!deferredModeLogged)
             {
