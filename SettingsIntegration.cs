@@ -1,6 +1,5 @@
 using System;
 using Bindito.Core;
-using ModSettings.Common;
 using ModSettings.Core;
 using Timberborn.Modding;
 using Timberborn.SettingsSystem;
@@ -40,14 +39,7 @@ public sealed class OptimizerSettingsOwner(
         foreach (var option in OptimizationToggles.Options)
         {
             if (!string.Equals(currentGroup, option.Group, StringComparison.Ordinal))
-            {
                 currentGroup = option.Group;
-                // The native ReadonlyTextModSetting factory renders the
-                // section heading without custom Unity UI code.
-                AddNonPersistentModSetting(new ReadonlyTextModSetting(
-                    ModSettingDescriptor.Create(currentGroup),
-                    new ReadonlyTextModSetting.TextSettings()));
-            }
 
             // Native BoolModSettingElementFactory owns the toggle layout,
             // binding and disabled appearance. Cache presence for this panel:
@@ -63,11 +55,6 @@ public sealed class OptimizerSettingsOwner(
             native.ValueChanged += (_, enabled) =>
                 OptimizationToggles.Set(option.Key, enabled);
 
-            // Keep the original 1-2 line descriptions using the framework's
-            // read-only text setting instead of styling game labels ourselves.
-            AddNonPersistentModSetting(new ReadonlyTextModSetting(
-                ModSettingDescriptor.Create(option.Description),
-                new ReadonlyTextModSetting.TextSettings()));
         }
     }
 }
@@ -78,7 +65,7 @@ internal sealed class OptimizerBoolSetting : ModSetting<bool>
 
     internal OptimizerBoolSetting(OptimizationToggles.Entry option, bool available)
         : base(option.DefaultEnabled,
-            ModSettingDescriptor.Create(option.Label)
+            ModSettingDescriptor.Create(option.Group + " | " + option.Label)
                 .SetTooltip(option.Description.Replace("\n", " "))
                 .SetEnableCondition(() => available))
     {
