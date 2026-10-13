@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard native Mod Settings integration against the v1.1.112 UI crash class."""
+"""Guard native Mod Settings integration against the v1.1.112 UI and v1.1.114 TextSettings startup crashes."""
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -9,6 +9,14 @@ project = (root / "BenchmarkAndOptimizerV11Port.csproj").read_text(encoding="utf
 modcheck = (root / "ModAvailability.cs").read_text(encoding="utf-8")
 
 assert "ReadonlyTextModSetting" in settings, "Missing native settings section headers"
+header_stub = (root / "Stubs/ModSettings.Common/Stub.cs").read_text(encoding="utf-8")
+assert "NativeTextHeaderSettings.Create()" in settings, "Headers must invoke verified runtime constructor"
+assert "new ReadonlyTextModSetting.TextSettings()" not in settings, "Parameterless TextSettings caused 1.1.114 startup crash"
+assert "private TextSettings()" in header_stub, "Compile stub must reject imaginary public ctor"
+assert "public TextSettings()" not in header_stub, "Do not reintroduce invalid parameterless ABI"
+assert "GetParameters().Length == 3" in settings, "eMka Mod Settings runtime constructor takes three arguments"
+assert "catch (Exception ex)" in settings, "Future incompatible headers must not crash game boot"
+
 assert "ModSettingDescriptor.Create(currentGroup)" in settings, "Group headings not separate"
 assert 'Create(option.Label)' in settings, "Option labels must not repeat group prefix"
 assert "ModSettings.Common/ModSettings.Common.Stub.csproj" in project
