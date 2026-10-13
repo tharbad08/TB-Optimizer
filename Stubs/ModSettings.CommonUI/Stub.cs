@@ -9,5 +9,3 @@ namespace ModSettings.CommonUI
         public bool ShouldBlockInput => false;
     }
 }
-
-namespace ModSettings.Common { public sealed class ReadonlyTextModSetting : ModSettings.Core.NonPersistentSetting { public ReadonlyTextModSetting(ModSettings.Core.ModSettingDescriptor descriptor, TextSettings settings):base(descriptor) {} public sealed class TextSettings { public TextSettings() {} } } }
