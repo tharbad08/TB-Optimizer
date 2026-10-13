@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
+using Timberborn.Modding;
 
 namespace BenchmarkAndOptimizerV11;
 
@@ -44,6 +46,38 @@ internal static class ModAvailability
                 "TonWolfe.SimpleWorkshopControl.PlantingControler"
             },
         };
+
+    // Names from the corresponding Workshop mod manifests, not guesses based
+    // on DLL/type names. Mod Settings can use the game's enabled-mod registry
+    // rather than assuming that a loaded assembly implies an enabled mod.
+    private static readonly IReadOnlyDictionary<string, string> RequiredModIds =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["BFR"] = "Calloatti.BeaversForReal",
+            ["EBR"] = "ExtendedBuilderReach",
+            ["FaunaBudget"] = "SylvanGames.Keystone",
+            ["FaunaCache"] = "SylvanGames.Keystone",
+            ["FaunaPrewarm"] = "SylvanGames.Keystone",
+            ["SuperCursor"] = "SuperCursor",
+            ["PhysicsCatchup"] = "eMka.TimberPhysics",
+            ["PhysicsCollider"] = "eMka.TimberPhysics",
+            ["SWC"] = "TonWolfe.SimpleWorkshopControl"
+        };
+
+    internal static bool IsAvailableInSettings(string key, ModRepository repository)
+    {
+        if (!IsAvailable(key)) return false;
+        if (BaseGameKeys.Contains(key)) return true;
+        if (!RequiredModIds.TryGetValue(key, out var requiredId)) return false;
+        try
+        {
+            return repository.EnabledMods.Any(mod => mod.Manifest.Id == requiredId);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static readonly HashSet<string> BaseGameKeys = new(StringComparer.Ordinal)
     {
