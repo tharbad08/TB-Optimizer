@@ -442,7 +442,7 @@ internal static class ExtendedBuilderReachNavOptimizer
 
         // Measure lookup separately from intersections, callbacks and snapshotting.
 
-        object[]? deferredCandidates = null;
+        object[]? pooledCandidates = null;
         var deferredCount = 0;
 
         if (usedSpatial)
@@ -451,8 +451,8 @@ internal static class ExtendedBuilderReachNavOptimizer
             if (scanned >= LargeUpdateCandidateThreshold)
             {
                 deferredCount = scanned;
-                deferredCandidates = System.Buffers.ArrayPool<object>.Shared.Rent(scanned);
-                CandidateSet.CopyTo(deferredCandidates);
+                pooledCandidates = System.Buffers.ArrayPool<object>.Shared.Rent(scanned);
+                CandidateSet.CopyTo(pooledCandidates);
             }
             else
             {
@@ -472,8 +472,8 @@ internal static class ExtendedBuilderReachNavOptimizer
             if (scanned >= LargeUpdateCandidateThreshold)
             {
                 deferredCount = scanned;
-                deferredCandidates = System.Buffers.ArrayPool<object>.Shared.Rent(scanned);
-                EbrListeners.CopyTo(deferredCandidates);
+                pooledCandidates = System.Buffers.ArrayPool<object>.Shared.Rent(scanned);
+                EbrListeners.CopyTo(pooledCandidates);
             }
             else
             {
@@ -489,11 +489,11 @@ internal static class ExtendedBuilderReachNavOptimizer
             }
         }
 
-        if (deferredCandidates is not null)
+        if (pooledCandidates is not null)
         {
             DeferredBatches.Enqueue(
-                new PendingBatch(__0, deferredCandidates, deferredCount, total, scanned, usedSpatial));
-            // The rented array is already queued; do not mutate it as a counter.
+                new PendingBatch(__0, pooledCandidates, deferredCount, total, scanned, usedSpatial));
+            deferredCandidates += deferredCount;
 
             if (!deferredModeLogged)
             {
