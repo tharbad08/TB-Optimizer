@@ -27,6 +27,9 @@ jobs:
       - name: Validate optional-mod detection gates
         run: python3 scripts/check-mod-activation.py
 
+      - name: Validate native Mod Settings integration
+        run: python3 scripts/check-native-settings.py
+
       - name: Build TB Optimizer
         run: dotnet build BenchmarkAndOptimizerV11Port.csproj -c Release --nologo
 
