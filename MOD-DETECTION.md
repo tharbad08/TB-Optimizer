@@ -1,5 +1,12 @@
 # Optional-mod detection and patch installation
 
+## Settings panel: authoritative enabled-mod detection (v1.1.114)
+
+The **settings UI** now checks the active `ModRepository.EnabledMods` list against verified manifest IDs, in addition to checking required runtime types. An installed-but-disabled mod therefore gets disabled checkboxes in the settings panel, even when its assembly remains loaded. Base-game options are unchanged.
+
+**Startup patches are different:** `ModStarter.StartMod` currently uses `ShouldInstall(key)` and runtime-type detection only, because the mod repository is not yet verified as safely accessible at that early lifecycle stage. Therefore the settings panel's enabled-mod check **does not guarantee** a disabled-but-loaded mod avoids startup Harmony hooks. This remaining migration requires early-stage DI/API verification and in-game testing, not an assumption.
+
+
 TB Optimizer never requires BFR, Extended Builder Reach, Keystone, SuperCursor, TimberPhysics or Simple Workshop Control to be installed. None appears in `manifest.json` as a required dependency.
 
 ## Installation policy
