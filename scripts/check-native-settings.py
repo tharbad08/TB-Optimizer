@@ -31,12 +31,29 @@ assert "enabled is not IEnumerable" in modcheck, "Runtime registry must be enume
 assert 'ReadRuntimeMember(mod, "Manifest")' in modcheck
 assert 'ReadRuntimeMember(manifest, "Id")' in modcheck
 assert "catch (Exception)" in modcheck, "Uninitialized registry must fail closed"
-assert "[System.Obsolete(" in mod_stub and "true)]" in mod_stub, "Stub must disallow direct EnabledMods calls"
+assert "[Obsolete(" in mod_stub and "true)]" in mod_stub, "Stub must disallow direct EnabledMods calls"
+# Verified against Timberborn.Modding.dll: IEnumerable<Mod>, not IReadOnlyList<Mod>.
+assert "IEnumerable<Mod> EnabledMods" in mod_stub, "Stub ABI mismatch: real EnabledMods returns IEnumerable<Mod>"
+assert "IReadOnlyList<Mod> EnabledMods" not in mod_stub, "Never reintroduce the v1.1.115 startup crash"
+# Verified against Timberborn.Modding.dll: ModManifest.Id is a getter only.
+assert 'public string Id => ""' in mod_stub, "Real ModManifest.Id is read-only"
+
 
 assert "style.opacity" not in settings
 assert "float opacity" not in stub, "Do not reintroduce invalid Unity IStyle.set_opacity(float) stub"
 assert "OptimizerSettingElementFactory" not in settings, "Use framework-native checkbox UI"
 assert "ModSettingsBox()" not in settings, "Never resize global Mod Settings window"
+# Verified against Bindito.Core.dll: Configurator.Configure() is abstract.
+bindito_stub = (root / "Stubs/Bindito.Core/Stub.cs").read_text(encoding="utf-8")
+assert "public abstract void Configure();" in bindito_stub, "Bindito Configurator.Configure is abstract"
+assert "public virtual void Configure() { }" not in bindito_stub
+# UnityEngine.CoreModule: GarbageCollector.CollectIncremental(ulong): bool.
+gc = (root / "Optimizations/BaseGame/GC/IncrementalGcSmoother.cs").read_text(encoding="utf-8")
+assert 'new[] { typeof(ulong) }' in gc and 'collect.ReturnType != typeof(bool)' in gc
+# Timberborn.SingletonSystem.SingletonLifecycleService.UpdateSingletons(): void.
+hook = (root / "Optimizations/BaseGame/GC/IncrementalGcFrameHook.cs").read_text(encoding="utf-8")
+assert '"UpdateSingletons"' in hook
+
 core_stub = (root / "Stubs/ModSettings.Core/Stub.cs").read_text(encoding="utf-8")
 assert 'protected override string ModId' in settings, "ModSettingsOwner.ModId is protected in eMka implementation"
 assert 'protected abstract string ModId' in core_stub, "Core stub must match framework protected ModId"

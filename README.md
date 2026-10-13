@@ -63,3 +63,27 @@ symbols. The remaining game-API and optional-mod Harmony targets are discovered
 through reflection with signature checks and fail-closed behavior; they still
 require the real Timberborn and optional-mod DLLs for definitive signature
 validation. The earlier v1.1.116 `EnabledMods` return-type crash fix remains.
+
+
+### Real game/framework assembly audit — v1.1.118
+
+Compared mod startup, native Mod Settings and selected runtime-hook signatures
+against the actual `Timberborn.Modding.dll`, `Timberborn.ModManagerScene.dll`,
+`Timberborn.SingletonSystem.dll`, `UnityEngine.CoreModule.dll`,
+`Bindito.Core.dll` and **Mod Settings 1.1** DLLs supplied on 2026-10-14.
+
+The v1.1.114 `TextSettings` constructor mismatch and v1.1.115
+`EnabledMods` return-type mismatch are confirmed. The real
+`ModRepository.EnabledMods` returns `IEnumerable<Mod>` (not
+`IReadOnlyList<Mod>`). Updated the compile stub to the verified
+declaration while continuing to forbid direct calls, preserving the
+runtime-safe reflection used in v1.1.116. Corrected the Bindito
+`Configurator.Configure()` stub declaration to `abstract`, and made
+`ModManifest.Id` getter-only as it is in the game.
+
+Verified other native settings calls, `IModStarter.StartMod`,
+`IModEnvironment.ModPath`, Unity incremental-GC signatures and
+`SingletonLifecycleService.UpdateSingletons` with no additional
+confirmed mismatches. Additional DLLs are needed to verify
+optional-mod hook internals and TimberUi (not in the supplied archive).
+Details: [API-COMPATIBILITY-2026-10-14.md](API-COMPATIBILITY-2026-10-14.md).
