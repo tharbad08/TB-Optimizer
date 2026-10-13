@@ -1,6 +1,6 @@
 {
   "Name": "TB Optimizer",
-  "Version": "1.1.119",
+  "Version": "1.1.120",
   "Id": "TBOptimizer",
   "MinimumGameVersion": "1.1.1.0",
   "Description": "Speeds up large colonies by reducing costly navigation updates, construction previews, terrain work and repeated scans. Includes optional optimizations for Extended Builder Reach, BFR, Keystone, SuperCursor, TimberPhysics and Simple Workshop Control, plus incremental GC support. Each fix has its own setting; patches for other mods only run when detected. Restart after changing options.",
