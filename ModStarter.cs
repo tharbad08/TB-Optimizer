@@ -13,7 +13,9 @@ public sealed class ModStarter : IModStarter
         OptimizationToggles.Initialize(modEnvironment.ModPath);
         var harmony = new Harmony("tharbad08.TBOptimizer");
         if (ModAvailability.ShouldInstall("BFR")) BfrLocalizedChangeOptimizerPatcher.Patch(harmony);
-        if (ModAvailability.ShouldInstall("EBR") && EbrDeferredDrainHook.Install(harmony))
+        if (ModAvailability.ShouldInstall("EBR") &&
+            ExtendedBuilderReachNavOptimizer.CanInstall() &&
+            EbrDeferredDrainHook.Install(harmony))
             ExtendedBuilderReachNavOptimizer.Patch(harmony);
         if (ModAvailability.ShouldInstall("PreviewNav")) PreviewNavMeshBatcher.Patch(harmony);
         if (ModAvailability.ShouldInstall("PreviewPool")) UnusedPreviewPoolFastPath.Patch(harmony);

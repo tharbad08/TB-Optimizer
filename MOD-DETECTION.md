@@ -1,5 +1,12 @@
 # Optional-mod detection and patch installation
 
+## Settings panel: authoritative enabled-mod detection (v1.1.114)
+
+The **settings UI** now checks the active `ModRepository.EnabledMods` list against verified manifest IDs, in addition to checking required runtime types. An installed-but-disabled mod therefore gets disabled checkboxes in the settings panel, even when its assembly remains loaded. Base-game options are unchanged.
+
+**Startup patches are different:** `ModStarter.StartMod` currently uses `ShouldInstall(key)` and runtime-type detection only, because the mod repository is not yet verified as safely accessible at that early lifecycle stage. Therefore the settings panel's enabled-mod check **does not guarantee** a disabled-but-loaded mod avoids startup Harmony hooks. This remaining migration requires early-stage DI/API verification and in-game testing, not an assumption.
+
+
 TB Optimizer never requires BFR, Extended Builder Reach, Keystone, SuperCursor, TimberPhysics or Simple Workshop Control to be installed. None appears in `manifest.json` as a required dependency.
 
 ## Installation policy
@@ -29,3 +36,22 @@ Detection happens when startup patches are installed; it does **not** promise re
 For each optional mod: test with its DLL completely absent; installed but disabled (may still be loaded); enabled with compatible signatures; enabled with changed signatures; explicit user opt-out; and a restart after re-enabling. Verify no optional Harmony hooks touch shared game methods when the mod is absent. Live gameplay checks remain necessary; compilation alone cannot establish safe scheduling or behavior.
 
 Implementation: [`ModAvailability.cs`](ModAvailability.cs), [`ModStarter.cs`](ModStarter.cs), [`OptimizationToggles.cs`](OptimizationToggles.cs), and [`SettingsIntegration.cs`](SettingsIntegration.cs).
+
+
+## Verified against installed DLLs (2026-10-14)
+
+The 2026-10-14 installed-mod reference ZIP includes both active and
+obsolete Workshop version folders. TB Optimizer's targets were checked
+against active v1.1 mod directories, not every archived version.
+
+- SWC v1.1.38: valid PlantMonitor, PlantingControler and
+  SimpleWorkshopControler types, fields and tick methods. Timberborn
+  1.1.2.7 has a **three-argument** HarvestStarter.FindYielder; v1.1.119
+  corrects the safety guard's method lookup and retains the mandatory
+  original-IL validation. Its allocation fast-path expects legacy inner
+  scanner methods absent from current SWC; the fast-path is skipped.
+- EBR v11: ExtendedDemolishableAccessible.UpdateAccesses,
+  NavMeshListenerEntityRegistry and NavMeshUpdate members found.
+- Keystone v1.3.3, BFR v2.2.1, SuperCursor v10.0.6 and
+  TimberPhysics v1.1.1.0: target type/method names exist.
+- These checks are static DLL metadata inspections, not in-game proofs.

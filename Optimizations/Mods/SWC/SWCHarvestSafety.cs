@@ -46,7 +46,28 @@ internal static class SWCHarvestSafety
             return false;
 
         var tick = AccessTools.DeclaredMethod(behavior, "Tick", Type.EmptyTypes);
-        var find = AccessTools.DeclaredMethod(harvester, "FindYielder", Type.EmptyTypes);
+        // Timberborn 1.1.2.7 has FindYielder(receivingInventory,
+        // inRangeYielders, prioritizedName), not a parameterless overload.
+        // Do not blindly bind to the first overload: require the three-input
+        // signature verified from the game's real Timberborn.Fields.dll.
+        // The IL validation below still must find exactly one safe insertion
+        // point after GetYielders and before Worker.Workplace; otherwise skip.
+        var find = harvester
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public |
+                        BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .SingleOrDefault(method =>
+            {
+                if (method.Name != "FindYielder" ||
+                    method.ReturnType != resultType)
+                    return false;
+                var arguments = method.GetParameters();
+                return arguments.Length == 3 &&
+                       arguments[0].Name == "receivingInventory" &&
+                       arguments[1].Name == "inRangeYielders" &&
+                       arguments[2].Name == "prioritizedName" &&
+                       arguments[2].ParameterType == typeof(string) &&
+                       arguments.All(argument => !argument.ParameterType.IsByRef);
+            });
         var update = AccessTools.DeclaredMethod(controller, "UpdateBlockedState", Type.EmptyTypes);
         var worker = AccessTools.Field(harvester, "_worker");
         var cache = AccessTools.Field(harvester, "_yieldersCache");

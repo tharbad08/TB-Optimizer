@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>TBOptimizer</AssemblyName>
     <RootNamespace>BenchmarkAndOptimizerV11</RootNamespace>
-    <AssemblyVersion>1.1.111.0</AssemblyVersion>
-    <FileVersion>1.1.111.0</FileVersion>
+    <AssemblyVersion>1.1.120.0</AssemblyVersion>
+    <FileVersion>1.1.120.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="References/**/*.cs" />
@@ -27,6 +27,7 @@
     <ProjectReference Include="Stubs/Timberborn.CoreUI/Timberborn.CoreUI.Stub.csproj" Private="false" />
     <ProjectReference Include="Stubs/ModSettings.Core/ModSettings.Core.Stub.csproj" Private="false" />
     <ProjectReference Include="Stubs/ModSettings.CoreUI/ModSettings.CoreUI.Stub.csproj" Private="false" />
+    <ProjectReference Include="Stubs/ModSettings.Common/ModSettings.Common.Stub.csproj" Private="false" />
     <ProjectReference Include="Stubs/ModSettings.CommonUI/ModSettings.CommonUI.Stub.csproj" Private="false" />
     <ProjectReference Include="Stubs/TimberUi/TimberUi.Stub.csproj" Private="false" />
   </ItemGroup>

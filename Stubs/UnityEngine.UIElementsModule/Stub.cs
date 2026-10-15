@@ -39,7 +39,6 @@ namespace UnityEngine.UIElements
         StyleLength left { get; set; }
         StyleLength top { get; set; }
         StyleEnum<WhiteSpace> whiteSpace { get; set; }
-        float opacity { get; set; }
     }
     public class EventBase { }
     public class DetachFromPanelEvent : EventBase { }
