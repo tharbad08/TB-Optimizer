@@ -41,11 +41,19 @@ Read this before editing this repository. This is the standalone, runtime-optimi
 ## Build, verify and deliver
 
 1. Read `README.md`, `FEATURE-LIST.md`, `OPTIMIZATIONS.md`, `FAILED_EXPERIMENTS.md`, `MOD-DETECTION.md`, and `NATIVE-API-AUDIT-1.1.114.md` (on the experimental branch) before modifying relevant systems.
-2. Check the current upstream branch/commit; keep any active combined EBR + settings test branch separate from stable `main` unless the user confirms the merge. Use focused branches and reviewable PRs.
+2. Check the actual project repository and latest upstream branch/commit before editing. Keep test branches separate from stable `main` until the user authorizes a merge. Use focused source branches and direct authorized merges inside our own repositories; **never open internal branch-to-branch PRs**. Open PRs only to other maintainers' repositories. Preserve any main-only files (including this guide) when merging.
 3. CI must test optional-mod activation guards and native settings regression rules and compile. Whenever possible, add genuine 1.1 game and dependency DLL references—not only stubs. Do not ship a build with an unresolved/unknown API signature.
 4. Deliver a **ready-to-install ZIP** containing the manifest and compiled DLL in `TBOptimizer/version-1.1/manifest.json` and `TBOptimizer/version-1.1/Scripts/TBOptimizer.dll`. Validate ZIP integrity, correct manifest ID/version/Description, dependencies, DLL version and branch commit. Avoid duplicated old versions in the user's mod folder.
 5. Distinguish source review, build pass, archive inspection, main-menu load, settings-open test, save-load test and gameplay validation. Do not claim an unperformed test. Include a verified download and CI run when requested.
 6. Write concrete failure explanations and verified status in docs; don't reattempt entries in `FAILED_EXPERIMENTS.md` without new evidence. Avoid noisy per-tick release logging.
+
+## Upstream PRs and cross-repository contributions
+
+- **Never open PRs between branches of our own repositories.** Keep internal work on branches; when the user approves a tested branch for `main`, merge directly while preserving main-only changes and ancestry. For closed internal PRs, keep source branches and commits available until explicitly told to delete them.
+- Contributions to EBR, SuperCursor, Keystone, BFR and other maintainers **must target their external repository**. Read the target project's own `Agents.MD`/`AGENTS.md` and nearby source before changing anything; verify the latest upstream base and that the diff only touches that mod. Never use a fork-local staging PR as a replacement for an upstream PR.
+- **Native integration over external patch ports:** TB Optimizer may need guarded Harmony hooks to optimize optional DLLs. When sending the improvement back to the mod author, directly change that mod's existing components and native services instead, where possible. If Harmony remains necessary, match the project's preferred `[HarmonyPatch]` attributes and existing `PatchAll()` flow; do not manually patch runtime methods when the first-party code can be changed.
+- On GitHub **403** for an external PR, report the permission restriction accurately, keep the pushable head branch and give the upstream compare link plus a ready-to-paste **raw fenced Markdown** PR description. Do not claim a PR exists or create an internal PR instead.
+- Explain the PR to a **human maintainer**: problem, design, implementation files, behavior preserved, trade-offs, dependency/lifecycle handling, and explicit verified vs unverified tests. A separately enabled EBR module in TB Optimizer can provide meaningful field-test evidence of the shared algorithm, but not proof that a different native upstream rewrite has compiled or worked in-game. Never merge superseded code merely because a closed PR contains it; compare with the newest actual source first.
 
 ## Adjacent Timberborn mod projects
 
