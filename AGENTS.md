@@ -38,6 +38,10 @@ Read this before editing this repository. This is the standalone, runtime-optimi
 - **GC:** Unity incremental GC is an engine feature, not something to silently enable. Extra collection slices need benchmarks, correct mode detection and measured benefit. Managed heap ≠ all process memory.
 - **Preview/blueprint/soil:** Protect vanilla navigation/placement validity, component construction order, mod hooks, and all global tick cadence. Soil cleanup/reset may be optimized; slowing global soil, planting, work, or singleton dispatch caused or risked stalls. See `FAILED_EXPERIMENTS.md` before changing optimizers.
 
+## Version convention for our own mod builds
+
+Use `<game version>.<build number>` (e.g. `1.1.121` for game 1.1, build 121). Increment the build number for **every changed test/release ZIP or DLL**; do not ship different builds with the same version. Match manifest `Version`, project `AssemblyVersion`/`FileVersion` (with trailing `.0` if required), and the artifact name. Documentation-only changes do not require a bump. Do not change third-party upstream mod versions in PRs unless explicitly requested; follow the other author's own AI guide.
+
 ## Build, verify and deliver
 
 1. Read `README.md`, `FEATURE-LIST.md`, `OPTIMIZATIONS.md`, `FAILED_EXPERIMENTS.md`, `MOD-DETECTION.md`, and `NATIVE-API-AUDIT-1.1.114.md` (on the experimental branch) before modifying relevant systems.
